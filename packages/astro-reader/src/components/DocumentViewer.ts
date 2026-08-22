@@ -1,48 +1,14 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import {
-	type AstroComponentFactory,
-	createComponent,
-	renderTemplate,
-	unescapeHTML,
-} from "astro/runtime/server/index.js";
 import { marked } from "marked";
 import { html } from "satori-html";
 
-import { markdownToImage } from "../markdown-image.ts";
-import type { Format, ImageResult, Page } from "../types.js";
-import { hashString } from "../utils/bufferHelper.ts";
+import type { Format, Page } from "../types.ts";
 import { emitPdfAsset } from "../utils/emitPdfAsset.ts";
-import type { Metadata } from "../utils/metadata.ts";
-import { renderedHtml } from "../utils/renderedHtml.js";
-import { renderContentToPdf, renderHtmlToSvg, renderSatoriToSvg } from "../utils/satoriRenderer.js";
+import { renderContentToPdf, renderHtmlToSvg, renderSatoriToSvg } from "../utils/satoriRenderer.ts";
 import { convertSvgToPdf } from "../utils/svgToPdf.ts";
-import { getUrlFileName } from "../utils/urlHelper.js";
-
-// export const DocumentViewer: AstroComponentFactory = createComponent(
-//   async (result, props: DocumentViewerProps) => {
-//     const { content, url, format, crop, ...imageProps } = props;
-//     const { DocumentViewer: Content } = await getDocumentViewer(content, url, {
-//       format: format ?? 'pdf',
-//       crop: crop ?? false,
-//     });
-//     return renderTemplate`${renderComponent(result, 'DocumentViewer', Content, imageProps)}`;
-//   },
-// );
-
-function createDocumentViewerComponent(content: ImageResult): AstroComponentFactory {
-	return createComponent((_result, props: DocumentViewerImageProps) => {
-		const format = content.format;
-		const alt = props.alt ?? content.alt ?? "";
-		const html = renderedHtml(content.page, format, alt, {
-			class: props.class ?? "",
-			style: props.style ?? "",
-			pageLimit: props.pageLimit ?? 10,
-		});
-		return renderTemplate`${unescapeHTML(html)}`;
-	});
-}
+import { getUrlFileName } from "../utils/urlHelper.ts";
 
 export interface LocalFileContent {
 	resourceType: "pdf" | "markdown" | "text";
@@ -62,27 +28,8 @@ export function fromLocalFile(file: LocalFileContent): DocumentResource {
 
 			const rawText = await fs.readFile(file.filePath, "utf-8");
 
-			let title = file.assetTitle;
-			let body = rawText;
-			let isMarkdown = false;
-
-			if (file.resourceType === "markdown") {
-				isMarkdown = true;
-				const parsed = await marked.parse(rawText);
-				title = file.assetTitle;
-				body = parsed;
-			}
-
-			return renderContentToPdf(title, body, isMarkdown);
+			return renderContentToPdf(file.assetTitle, rawText, file.resourceType === "markdown");
 		},
-	};
-}
-
-export function fromTextContent(content: DocumentViewer): DocumentResource {
-	return {
-		title: content.assetTitle,
-		cacheKey: hashString(content.source),
-		render: () => markdownToImage(content.source),
 	};
 }
 
@@ -233,45 +180,4 @@ export async function getDocumentViewer(resource: DocumentResource, format: Form
 		console.error("[setCache] Error:", err);
 		return { src: "" };
 	}
-}
-
-export interface DocumentViewer {
-	source: string;
-	alt: string;
-	sourceName?: string;
-	assetTitle: string;
-	meta: Metadata;
-}
-
-export interface DocumentViewerProps
-	extends DocumentViewerImageProps, Pick<DocumentViewerOptions, "format" | "crop"> {
-	content?: DocumentViewer;
-	url?: string;
-}
-
-interface DocumentViewerImageProps {
-	pageLimit?: number;
-	class?: string;
-	style?: string;
-	alt?: string;
-}
-
-interface DocumentViewerOptions {
-	/**
-	 * Output format for `DocumentViewer`.
-	 * @default the `defaults.format` configured on the integration ("svg" unless overridden)
-	 */
-	format?: Format;
-
-	/**
-	 * Crop `DocumentViewer` to a single tightly-fit image instead of full pages.
-	 * @default false
-	 */
-	crop?: boolean;
-
-	/**
-	 * Render a downloadable PDF of the same DocumentViewer, returned as `pdf`.
-	 * @default false
-	 */
-	pdf?: boolean;
 }

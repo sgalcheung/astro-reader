@@ -4,13 +4,20 @@ import react from "@astrojs/react";
 import starlight from "@astrojs/starlight";
 import tailwindcss from "@tailwindcss/vite";
 import astroReader from "astro-reader";
-import { defineConfig } from "astro/config";
+import { defineConfig, fontProviders } from "astro/config";
 import { viteStaticCopy } from "vite-plugin-static-copy";
 
 // https://astro.build/config
 export default defineConfig({
 	site: "https://sgalcheung.github.io",
 	base: "/astro-reader",
+  fonts: [{
+    provider: fontProviders.fontsource(),
+    name: "Noto Sans SC",
+    cssVariable: "--font-noto-sans-sc",
+    subsets:["chinese-simplified"],
+    formats:["ttf"]
+  }],
 	integrations: [
 		astroReader(),
 		starlight({

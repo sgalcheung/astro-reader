@@ -4,7 +4,8 @@ import type { Defaults } from "./types.ts";
 // import type { LilypondDefaults } from "./render.js";
 
 export interface State {
-	binaryPath: string;
+	fontName?: string | undefined;
+  devServerUrl: string;
 	defaults: Defaults | undefined;
 	timeout: number | undefined;
 	isDev: boolean;

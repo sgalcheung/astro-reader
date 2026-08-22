@@ -17,7 +17,6 @@
 	--font-family-sans: "Inter", system-ui, sans-serif;
 }
 
-/* 自訂滾動條樣式 */
 ::-webkit-scrollbar {
 	width: 8px;
 	height: 8px;
@@ -33,7 +32,6 @@
 	background: #475569;
 }
 
-/* 漸層文字工具類 */
 .gradient-text {
 	background: linear-gradient(to right, #38bdf8, #818cf8);
 	-webkit-background-clip: text;

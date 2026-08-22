@@ -9,15 +9,21 @@ import { EXTENSIONS } from "./types.ts";
 import { titleFor } from "./utils/titleFor.ts";
 import { typeDeclarationsFor } from "./utils/typeDeclarationsFor.ts";
 
-export function astroReader(): AstroIntegration {
+export function astroReader(options: { fontName?: string } = {}): AstroIntegration {
 	return {
 		name: "astro-reader",
 		hooks: {
 			"astro:config:setup": async ({ config, command, updateConfig, logger }) => {
 				const isDev = command === "dev";
+
+        const host = config.server?.host === true ? 'localhost' : (config.server?.host || 'localhost');
+        const port = config.server?.port || 4321;
+        const devServerUrl = `http://${host}:${port}`;
+
 				setState({
-					binaryPath: "", // binaryPath,
-					defaults: undefined, // options.defaults,
+					fontName:options.fontName,
+          devServerUrl,
+					defaults: undefined,
 					timeout: undefined,
 					isDev,
 					logger,

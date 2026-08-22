@@ -3,33 +3,140 @@ import path from "node:path";
 
 import { Resvg } from "@resvg/resvg-js";
 import { marked } from "marked";
+import { PDFDocument } from "pdf-lib";
 import satori from "satori";
 import { html } from "satori-html";
+import { fontData, experimental_getFontFileURL, type FontData } from "astro:assets";
+import { getState } from "../state.ts";
 
-const fontPath = path.resolve(process.cwd(), "public/fonts/LXGWWenKai-Regular.ttf");
 
-let fontBuffer: Buffer | null = null;
-let fontLoadError: Error | null = null;
+// const fontPath = path.resolve(process.cwd(), "public/fonts/LXGWWenKai-Regular.ttf");
+
+// let fontBuffer: Buffer | null = null;
+// let fontLoadError: Error | null = null;
+
+// async function getFontBuffer() {
+// 	if (fontBuffer) return fontBuffer;
+// 	if (fontLoadError) throw fontLoadError;
+
+// 	try {
+// 		fontBuffer = await fs.readFile(fontPath);
+// 	} catch (err) {
+// 		// ⭐ 核心修改：提供极其清晰的错误提示，而不是晦涩的 ENOENT
+// 		fontLoadError = new Error(
+// 			`[astro-reader] 找不到中文字体文件！\n` +
+// 				`预期路径: ${fontPath}\n` +
+// 				`请确保已将 .ttf 或 .otf 字体文件放置在此路径下。\n` +
+// 				`下载地址参考: https://github.com/lxgw/LxgwWenKai/releases`,
+// 		);
+// 		console.warn("\n⚠️", fontLoadError.message, "\n");
+// 		throw fontLoadError;
+// 	}
+
+// 	return fontBuffer;
+// }
+
+// https://docs.astro.build/en/guides/fonts/#accessing-font-data-programmatically
+let fontBuffer: ArrayBuffer | null = null;
+let fontInfo: FontData["src"][0] | undefined;
+let fontUrl:string;
+
+function isEmptyRecord(record:typeof fontData) {
+  return record === null || record === undefined || 
+         (typeof record === 'object' && Object.keys(record).length === 0);
+}
 
 async function getFontBuffer() {
-	if (fontBuffer) return fontBuffer;
-	if (fontLoadError) throw fontLoadError;
+  if (fontBuffer) return fontBuffer;
 
-	try {
-		fontBuffer = await fs.readFile(fontPath);
-	} catch (err) {
-		// ⭐ 核心修改：提供极其清晰的错误提示，而不是晦涩的 ENOENT
-		fontLoadError = new Error(
-			`[astro-reader] 找不到中文字体文件！\n` +
-				`预期路径: ${fontPath}\n` +
-				`请确保已将 .ttf 或 .otf 字体文件放置在此路径下。\n` +
-				`下载地址参考: https://github.com/lxgw/LxgwWenKai/releases`,
-		);
-		console.warn("\n⚠️", fontLoadError.message, "\n");
-		throw fontLoadError;
-	}
+  const { fontName, devServerUrl, isDev } = getState();
 
-	return fontBuffer;
+try {
+if (isEmptyRecord(fontData)) {
+    throw new Error(
+      `\n[astro-reader] No font configuration found.\n` +
+        `Please ensure that the fonts are configured correctly in the fonts section of astro.config.mjs.`
+    );
+  }
+
+  // TODO: default use first subsets
+  const targetFontKey = fontName || Object.keys(fontData)[0]!;
+  const fontVariants = fontData[targetFontKey];
+
+  if (!fontVariants || fontVariants.length === 0) {
+    throw new Error(
+      `\n[astro-reader] No font named "${fontName || 'default'}" was found.\n` +
+        `Please ensure that the fonts are configured correctly in the fonts section of astro.config.mjs.`
+    );
+  }
+
+ fontInfo = fontVariants[0]?.src?.[0];
+
+  if (!fontInfo || !fontInfo.url) {
+    throw new Error(
+      `\n[astro-reader] Unable to retrieve the URL path for the font "${targetFontKey}".\n` +
+        `Please check if the font configuration contains a valid src path.`
+    );
+  }
+
+  const baseUrl = isDev ? devServerUrl : (import.meta.env.SITE || 'http://localhost:4321');
+   fontUrl = experimental_getFontFileURL(fontInfo.url, new URL(baseUrl));
+
+    const response = await fetch(fontUrl);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    fontBuffer = await response.arrayBuffer();
+    return fontBuffer;
+  } catch (fetchError) {
+    console.warn(`[astro-reader] Fetching font from ${fontUrl} failed. Falling back to local fs.readFile.`);
+    
+    try {
+      const publicFontsDir = path.resolve(process.cwd(), "public/fonts");
+      const publicDir = path.resolve(process.cwd(), "public");
+
+      let localFontBuffer = await readFirstTtfFromDir(publicFontsDir);
+
+      if (!localFontBuffer) {
+        localFontBuffer = await readFirstTtfFromDir(publicDir);
+      }
+
+      if(!localFontBuffer){
+        throw new Error("No .ttf or .otf font files were found in the public/fonts or public directory.")
+      }
+
+      fontBuffer = localFontBuffer;
+      return fontBuffer;
+
+    } catch (fsError) {
+      throw new Error(
+        `\n[astro-reader] Font loading failed completely! \n` +
+        `Fetch error: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}\n` +
+        `FS read error: ${fsError instanceof Error ? fsError.message : String(fsError)}\n` +
+        `Please ensure that the font file exists in the public directory and that astro.config.mjs is configured correctly.`
+      );
+    }
+  }
+}
+
+async function readFirstTtfFromDir(dirPath: string): Promise<ArrayBuffer | null> {
+  try {
+    const files = await fs.readdir(dirPath);
+    const ttfFile = files.find((f) => f.endsWith(".ttf") || f.endsWith(".otf"));
+    
+    if (ttfFile) {
+      const filePath = path.join(dirPath, ttfFile);
+      const buffer = await fs.readFile(filePath);
+      // 将 Node.js Buffer 转换为标准的 ArrayBuffer
+      return buffer.buffer.slice(
+        buffer.byteOffset,
+        buffer.byteOffset + buffer.byteLength
+      ) as ArrayBuffer;
+    }
+  } catch (e) {
+    // 目录不存在 (ENOENT) 或无权限，静默返回 null，交由上层处理
+  }
+  return null;
 }
 
 /**
@@ -91,7 +198,6 @@ export async function renderContentToPdf(
 ): Promise<Buffer> {
 	const fontData = await getFontBuffer();
 
-	// 1. 准备 HTML 内容
 	let bodyHtml = content;
 	if (isMarkdown) {
 		bodyHtml = await marked.parse(content);
@@ -99,7 +205,6 @@ export async function renderContentToPdf(
 		bodyHtml = content.replace(/\n/g, "<br/>");
 	}
 
-	// 2. 构建排版结构 (包含完整的 CSS 样式重置)
 	const htmlString = `
     <div style="display:flex; flex-direction:column; width:100%; height:100%; padding:60px; font-family:'CustomFont'; background:#ffffff; color:#333333; box-sizing: border-box;">
       <h1 style="font-size:48px; font-weight:bold; margin: 0 0 30px 0; padding-bottom:15px; border-bottom:2px solid #eee; color:#111; line-height: 1.2;">
@@ -126,7 +231,7 @@ export async function renderContentToPdf(
     </div>
   `;
 
-	// 3. Satori: HTML -> SVG
+	// Satori: HTML -> SVG
 	const markup = html(htmlString);
 	const PAGE_WIDTH = 1200;
 	const PAGE_HEIGHT = 1600;
@@ -137,22 +242,20 @@ export async function renderContentToPdf(
 		fonts: [{ name: "CustomFont", data: fontData, weight: 400, style: "normal" }],
 	});
 
-	// 4. Resvg: SVG -> 高清 PNG (2x 缩放保证打印清晰度)
+	// Resvg: SVG -> PNG (2x)
 	const resvg = new Resvg(svg, {
 		fitTo: { mode: "width", value: PAGE_WIDTH * 2 },
 	});
 	const pngBuffer = resvg.render().asPng();
 
-	// 5. ⭐ Pdf-lib: PNG -> 真正的 PDF 文件 (完美支持 ESM，无 __dirname 报错)
+	// ⭐ Pdf-lib: PNG -> PDF
 	const pdfDoc = await PDFDocument.create();
 
-	// 添加一页，使用标准 A4 尺寸 (595.28 x 841.89 points)
+	// page A4 size (595.28 x 841.89 points)
 	const page = pdfDoc.addPage([595.28, 841.89]);
 
-	// 嵌入我们生成的 PNG 图片
 	const pngImage = await pdfDoc.embedPng(pngBuffer);
 
-	// 将图片绘制到页面上，拉伸以完美填满整个 A4 页面
 	page.drawImage(pngImage, {
 		x: 0,
 		y: 0,
@@ -160,7 +263,6 @@ export async function renderContentToPdf(
 		height: 841.89,
 	});
 
-	// 保存并返回 Buffer
 	const pdfBytes = await pdfDoc.save();
 	return Buffer.from(pdfBytes);
 }
