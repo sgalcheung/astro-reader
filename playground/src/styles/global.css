@@ -1,0 +1,43 @@
+/* src/styles/global.css */
+@import "tailwindcss";
+
+@theme {
+	--color-brand-50: #f0f9ff;
+	--color-brand-100: #e0f2fe;
+	--color-brand-400: #38bdf8;
+	--color-brand-500: #0ea5e9;
+	--color-brand-600: #0284c7;
+
+	--color-dark-bg: #0f172a;
+	--color-dark-surface: #1e293b;
+	--color-dark-text: #f8fafc;
+	--color-dark-muted: #94a3b8;
+
+	--font-family-mono: "Fira Code", ui-monospace, monospace;
+	--font-family-sans: "Inter", system-ui, sans-serif;
+}
+
+/* 自訂滾動條樣式 */
+::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+::-webkit-scrollbar-thumb {
+	background: #334155;
+	border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+	background: #475569;
+}
+
+/* 漸層文字工具類 */
+.gradient-text {
+	background: linear-gradient(to right, #38bdf8, #818cf8);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	background-clip: text;
+	color: transparent;
+}

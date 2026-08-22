@@ -1,10 +1,10 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+
 import { Resvg } from "@resvg/resvg-js";
 import { marked } from "marked";
 import satori from "satori";
 import { html } from "satori-html";
-
 
 const fontPath = path.resolve(process.cwd(), "public/fonts/LXGWWenKai-Regular.ttf");
 
@@ -85,22 +85,22 @@ export async function renderHtmlToSvg(
 }
 
 export async function renderContentToPdf(
-  title: string, 
-  content: string, 
-  isMarkdown = false
+	title: string,
+	content: string,
+	isMarkdown = false,
 ): Promise<Buffer> {
-  const fontData = await getFontBuffer();
-  
-  // 1. 准备 HTML 内容
-  let bodyHtml = content;
-  if (isMarkdown) {
-    bodyHtml = await marked.parse(content);
-  } else {
-    bodyHtml = content.replace(/\n/g, '<br/>');
-  }
+	const fontData = await getFontBuffer();
 
-  // 2. 构建排版结构 (包含完整的 CSS 样式重置)
-  const htmlString = `
+	// 1. 准备 HTML 内容
+	let bodyHtml = content;
+	if (isMarkdown) {
+		bodyHtml = await marked.parse(content);
+	} else {
+		bodyHtml = content.replace(/\n/g, "<br/>");
+	}
+
+	// 2. 构建排版结构 (包含完整的 CSS 样式重置)
+	const htmlString = `
     <div style="display:flex; flex-direction:column; width:100%; height:100%; padding:60px; font-family:'CustomFont'; background:#ffffff; color:#333333; box-sizing: border-box;">
       <h1 style="font-size:48px; font-weight:bold; margin: 0 0 30px 0; padding-bottom:15px; border-bottom:2px solid #eee; color:#111; line-height: 1.2;">
         ${title}
@@ -126,41 +126,41 @@ export async function renderContentToPdf(
     </div>
   `;
 
-  // 3. Satori: HTML -> SVG
-  const markup = html(htmlString);
-  const PAGE_WIDTH = 1200;
-  const PAGE_HEIGHT = 1600; 
-  
-  const svg = await satori(markup as any, {
-    width: PAGE_WIDTH,
-    height: PAGE_HEIGHT,
-    fonts: [{ name: 'CustomFont', data: fontData, weight: 400, style: 'normal' }],
-  });
+	// 3. Satori: HTML -> SVG
+	const markup = html(htmlString);
+	const PAGE_WIDTH = 1200;
+	const PAGE_HEIGHT = 1600;
 
-  // 4. Resvg: SVG -> 高清 PNG (2x 缩放保证打印清晰度)
-  const resvg = new Resvg(svg, {
-    fitTo: { mode: 'width', value: PAGE_WIDTH * 2 },
-  });
-  const pngBuffer = resvg.render().asPng();
+	const svg = await satori(markup as any, {
+		width: PAGE_WIDTH,
+		height: PAGE_HEIGHT,
+		fonts: [{ name: "CustomFont", data: fontData, weight: 400, style: "normal" }],
+	});
 
-  // 5. ⭐ Pdf-lib: PNG -> 真正的 PDF 文件 (完美支持 ESM，无 __dirname 报错)
-  const pdfDoc = await PDFDocument.create();
-  
-  // 添加一页，使用标准 A4 尺寸 (595.28 x 841.89 points)
-  const page = pdfDoc.addPage([595.28, 841.89]);
-  
-  // 嵌入我们生成的 PNG 图片
-  const pngImage = await pdfDoc.embedPng(pngBuffer);
-  
-  // 将图片绘制到页面上，拉伸以完美填满整个 A4 页面
-  page.drawImage(pngImage, {
-    x: 0,
-    y: 0,
-    width: 595.28,
-    height: 841.89,
-  });
-  
-  // 保存并返回 Buffer
-  const pdfBytes = await pdfDoc.save();
-  return Buffer.from(pdfBytes);
+	// 4. Resvg: SVG -> 高清 PNG (2x 缩放保证打印清晰度)
+	const resvg = new Resvg(svg, {
+		fitTo: { mode: "width", value: PAGE_WIDTH * 2 },
+	});
+	const pngBuffer = resvg.render().asPng();
+
+	// 5. ⭐ Pdf-lib: PNG -> 真正的 PDF 文件 (完美支持 ESM，无 __dirname 报错)
+	const pdfDoc = await PDFDocument.create();
+
+	// 添加一页，使用标准 A4 尺寸 (595.28 x 841.89 points)
+	const page = pdfDoc.addPage([595.28, 841.89]);
+
+	// 嵌入我们生成的 PNG 图片
+	const pngImage = await pdfDoc.embedPng(pngBuffer);
+
+	// 将图片绘制到页面上，拉伸以完美填满整个 A4 页面
+	page.drawImage(pngImage, {
+		x: 0,
+		y: 0,
+		width: 595.28,
+		height: 841.89,
+	});
+
+	// 保存并返回 Buffer
+	const pdfBytes = await pdfDoc.save();
+	return Buffer.from(pdfBytes);
 }

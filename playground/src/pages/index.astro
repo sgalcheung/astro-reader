@@ -1,8 +1,297 @@
 ---
-
+import "../styles/global.css";
 ---
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>astro-reader | 专为 Astro 与 Starlight 打造的轻量级 PDF 阅读器</title>
+    <meta name="description" content="将 PDF 无缝嵌入你的 Astro 文件与网站。保持一致的阅读体验与主题适配。">
+</head>
+<body class="bg-dark-bg text-dark-text font-sans antialiased selection:bg-brand-500 selection:text-white">
+    
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full z-50 border-b border-white/10 bg-dark-bg/80 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center gap-2">
+                  <!-- TODO: brand logo -->
+                    <!-- <div class="w-8 h-8 bg-brand-500 rounded-lg flex items-center justify-center font-bold text-white">A</div> -->
+                    <span class="font-bold text-xl tracking-tight">Astro Reader</span>
+                </div>
+                <div class="hidden md:flex items-center gap-8 text-sm font-medium text-dark-muted">
+                    <a href="#features" class="hover:text-white transition-colors">核心特色</a>
+                    <a href="#how-it-works" class="hover:text-white transition-colors">运作方式</a>
+                    <a href="#comparison" class="hover:text-white transition-colors">方案比较</a>
+                </div>
+                <div class="flex items-center gap-8">
+                    <a href="/astro-reader/getting-started/helloworld" target="_blank" class="text-dark-muted hover:text-white transition-colors">
+                        Doc
+                    </a>
+                    <a href="https://github.com/sgalcheung/astro-reader" class="bg-white text-dark-bg px-4 py-2 rounded-md text-sm font-semibold hover:bg-gray-200 transition-colors" aria-label="GitHub">
+                      <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>  
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
 
-<meta
-  http-equiv='refresh'
-  content='0;url=/astro-reader/getting-started/helloworld'
-/>
+    <!-- Hero Section -->
+    <section id="features" class="pt-32 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-sm font-medium mb-8">
+            <span class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-brand-500"></span>
+            </span>
+            开源发布 / 专为 Astro & Starlight 打造
+        </div>
+        <h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight mb-6 leading-tight">
+            把 PDF 无缝嵌入你的 <br class="hidden sm:block" />
+            <span class="gradient-text">Astro 文件与网站</span>
+        </h1>
+        <p class="text-lg sm:text-xl text-dark-muted max-w-2xl mx-auto mb-10 leading-relaxed">
+            <code class="text-brand-400 font-mono bg-dark-surface px-2 py-1 rounded border border-white/5">astro-reader</code> 是一个轻量级的 PDF 阅读器组件。让你的数字杂志、技术文档和在线阅读平台保持一致的流畅体验，同时保留完整的源码控制和主题适配。
+        </p>
+        
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div class="copy flex items-center bg-dark-surface border border-white/10 rounded-lg p-1.5 pl-4 pr-2 font-mono text-sm text-dark-muted group cursor-pointer hover:border-brand-500/50 transition-colors">
+                <span class="mr-4 select-all">npm install astro-reader</span>
+                <button class="bg-white/5 hover:bg-white/10 p-2 rounded-md transition-colors" title="复制指令">
+                    <svg class="w-4 h-4 copy-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                </button>
+            </div>
+            <a href="#how-it-works" class="px-6 py-3 bg-brand-600 hover:bg-brand-500 text-white rounded-lg font-semibold transition-all flex items-center gap-2 shadow-lg shadow-brand-500/20">
+                阅读入门指南
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+            </a>
+        </div>
+    </section>
+
+    <!-- How it Works -->
+    <section id="how-it-works" class="py-20 bg-dark-surface/30 border-y border-white/5">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold mb-4">astro-reader 是如何运作的？</h2>
+                <p class="text-dark-muted">三个简单步骤，从安装到完美嵌入，让你的文档站具备专业级阅读体验。</p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8">
+                <!-- Step 1 -->
+                <div class="bg-dark-bg border border-white/10 rounded-2xl p-6 hover:border-brand-500/30 transition-colors group">
+                    <div class="text-brand-500 font-mono text-sm mb-4 font-bold">STEP 01</div>
+                    <h3 class="text-xl font-bold mb-3 group-hover:text-brand-400 transition-colors">安装整合套件</h3>
+                    <p class="text-dark-muted text-sm mb-4">一行指令，将阅读器能力注入你的 Astro 或 Starlight 项目。</p>
+                    <div class="bg-dark-surface rounded-lg p-3 font-mono text-xs text-green-400 border border-white/5">
+                        $ npm install astro-reader
+                    </div>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="bg-dark-bg border border-white/10 rounded-2xl p-6 hover:border-brand-500/30 transition-colors group">
+                    <div class="text-brand-500 font-mono text-sm mb-4 font-bold">STEP 02</div>
+                    <h3 class="text-xl font-bold mb-3 group-hover:text-brand-400 transition-colors">宣告 Reader 元件</h3>
+                    <p class="text-dark-muted text-sm mb-4">在 Markdown 或 Astro 页面中，直接引入并指定 PDF 路径。</p>
+                    <div class="bg-dark-surface rounded-lg p-3 font-mono text-xs text-blue-300 border border-white/5 overflow-x-auto">
+                        &lt;DocumentView src="/doc.pdf" /&gt;
+                    </div>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="bg-dark-bg border border-white/10 rounded-2xl p-6 hover:border-brand-500/30 transition-colors group">
+                    <div class="text-brand-500 font-mono text-sm mb-4 font-bold">STEP 03</div>
+                    <h3 class="text-xl font-bold mb-3 group-hover:text-brand-400 transition-colors">无缝主題适配</h3>
+                    <p class="text-dark-muted text-sm mb-4">自动继承 Starlight 的深色/浅色模式，提供流畅的翻页、缩放与导航体验。</p>
+                    <div class="flex gap-2 mt-4">
+                        <div class="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+                        <div class="h-2 w-2 rounded-full bg-brand-500 animate-pulse delay-75"></div>
+                        <div class="h-2 w-2 rounded-full bg-purple-500 animate-pulse delay-150"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Comparison Matrix -->
+    <section id="comparison" class="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16">
+            <h2 class="text-3xl font-bold mb-4">为什么选择 astro-reader？</h2>
+            <p class="text-dark-muted">在速度、排版美观度和开发体验之间，找到最佳的 PDF 嵌入方案。</p>
+        </div>
+
+        <div class="overflow-x-auto rounded-xl border border-white/10">
+            <table class="w-full text-left border-collapse bg-dark-bg">
+                <thead>
+                    <tr class="border-b border-white/10 text-dark-muted text-sm bg-dark-surface/50">
+                        <th class="py-4 px-6 font-medium">特性比较</th>
+                        <th class="py-4 px-6 font-medium">传统 iframe / object</th>
+                        <th class="py-4 px-6 font-medium">第三方 SaaS 嵌入</th>
+                        <th class="py-4 px-6 font-medium text-brand-400">astro-reader ✨</th>
+                    </tr>
+                </thead>
+                <tbody class="text-sm">
+                    <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 font-semibold text-dark-text">打包体积与性能</td>
+                        <td class="py-4 px-6 text-dark-muted">依赖浏览器默认，性能不一</td>
+                        <td class="py-4 px-6 text-dark-muted">依赖浏览器默认，性能不稳定</td>
+                        <td class="py-4 px-6 text-white font-medium">极轻量，原生 Astro 优化</td>
+                    </tr>
+                    <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 font-semibold text-dark-text">主题一致性</td>
+                        <td class="py-4 px-6 text-red-400">❌ 无法自定义，视觉突兀</td>
+                        <td class="py-4 px-6 text-yellow-400">⚠️ 有限支援</td>
+                        <td class="py-4 px-6 text-green-400">✅ 完美适配 Starlight 深/浅色模式</td>
+                    </tr>
+                    <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 font-semibold text-dark-text">移动设备体验</td>
+                        <td class="py-4 px-6 text-red-400">❌ 缩放困难，容易跑版</td>
+                        <td class="py-4 px-6 text-yellow-400">⚠️ 取决于供应商</td>
+                        <td class="py-4 px-6 text-green-400">✅ 原生触控优化，流畅滑动</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 font-semibold text-dark-text">隐私与资料控制</td>
+                        <td class="py-4 px-6 text-yellow-400">⚠️ 本地档案，但无互动控制</td>
+                        <td class="py-4 px-6 text-red-400">❌ 需上传至第三方服务器</td>
+                        <td class="py-4 px-6 text-green-400">✅ 100% 本地渲染，资料完全自主</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Interactive Preview Mockup -->
+    <section class="py-20 bg-dark-surface/30 border-y border-white/5">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid lg:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h2 class="text-3xl font-bold mb-6">实机预览：无缝融入你的文档站</h2>
+                    <p class="text-dark-muted mb-6 leading-relaxed">
+                        左侧是你的 Starlight 文件导航与內容，右侧（或内嵌区块）是 <code class="text-brand-400 bg-dark-bg px-1.5 py-0.5 rounded border border-white/10">astro-reader</code> 提供的沉浸式阅读体验。支持目录跳转、页面缩放和全屏模式。
+                    </p>
+                    <ul class="space-y-4">
+                        <li class="flex items-start gap-3">
+                            <svg class="w-6 h-6 text-brand-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <span class="text-dark-muted"><strong class="text-dark-text">零设置摩擦：</strong> 自动解析 PDF 元数据，生成默认工具栏。</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <svg class="w-6 h-6 text-brand-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <span class="text-dark-muted"><strong class="text-dark-text">高度可扩展：</strong> 提供 Slot 和 Props，让开发者自定义按钮或覆盖默认样式。</span>
+                        </li>
+                    </ul>
+                </div>
+                
+                <!-- Mockup UI -->
+                <div class="relative bg-dark-bg border border-white/10 rounded-xl overflow-hidden shadow-2xl shadow-brand-500/10">
+                    <!-- Browser Chrome -->
+                    <div class="bg-dark-surface px-4 py-3 border-b border-white/10 flex items-center gap-2">
+                        <div class="flex gap-1.5">
+                            <div class="w-3 h-3 rounded-full bg-red-500/80"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-500/80"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500/80"></div>
+                        </div>
+                        <div class="flex-1 bg-dark-bg rounded-md px-3 py-1 text-xs text-dark-muted text-center font-mono border border-white/5">
+                            localhost:4321/docs/guide
+                        </div>
+                    </div>
+                    <!-- Content Area -->
+                    <div class="flex h-80">
+                        <!-- Sidebar Mock -->
+                        <div class="w-1/4 border-r border-white/10 p-4 hidden sm:block bg-dark-bg">
+                            <div class="h-4 w-20 bg-white/10 rounded mb-4"></div>
+                            <div class="space-y-3">
+                                <div class="h-3 w-full bg-white/5 rounded"></div>
+                                <div class="h-3 w-3/4 bg-white/5 rounded"></div>
+                                <div class="h-3 w-5/6 bg-brand-500/10 border-l-2 border-brand-500 rounded pl-2 text-brand-400 text-xs flex items-center font-medium">嵌入 PDF 文件</div>
+                                <div class="h-3 w-full bg-white/5 rounded"></div>
+                            </div>
+                        </div>
+                        <!-- Reader Mock -->
+                        <div class="flex-1 bg-gray-100 dark:bg-gray-900 relative flex flex-col">
+                            <!-- Reader Toolbar -->
+                            <div class="h-10 bg-dark-surface border-b border-white/10 flex items-center justify-between px-3">
+                                <div class="flex gap-2">
+                                    <div class="w-6 h-6 rounded bg-white/10 hover:bg-white/20 cursor-pointer transition-colors"></div>
+                                    <div class="w-6 h-6 rounded bg-white/10 hover:bg-white/20 cursor-pointer transition-colors"></div>
+                                </div>
+                                <div class="text-xs text-dark-muted font-mono bg-dark-bg px-2 py-1 rounded border border-white/5">1 / 12</div>
+                                <div class="flex gap-2">
+                                    <div class="w-6 h-6 rounded bg-white/10 hover:bg-white/20 cursor-pointer transition-colors"></div>
+                                    <div class="w-6 h-6 rounded bg-brand-500/20 border border-brand-500/50 hover:bg-brand-500/30 cursor-pointer transition-colors"></div>
+                                </div>
+                            </div>
+                            <!-- PDF Page Mock -->
+                            <div class="flex-1 overflow-y-auto p-4 flex justify-center bg-dark-bg">
+                                <div class="w-full max-w-md bg-white dark:bg-gray-800 shadow-lg rounded-sm p-6 space-y-3 transition-colors">
+                                    <div class="h-6 w-3/4 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                                    <div class="h-3 w-full bg-gray-100 dark:bg-gray-700/50 rounded"></div>
+                                    <div class="h-3 w-full bg-gray-100 dark:bg-gray-700/50 rounded"></div>
+                                    <div class="h-3 w-5/6 bg-gray-100 dark:bg-gray-700/50 rounded"></div>
+                                    <div class="h-32 w-full bg-gray-50 dark:bg-gray-900 rounded border border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center text-gray-400 text-xs font-mono">
+                                        [ PDF Content Rendered Here ]
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-24 text-center px-4">
+        <div class="max-w-3xl mx-auto">
+            <h2 class="text-3xl sm:text-4xl font-bold mb-6">准备好提升你的文件阅读体验了吗？</h2>
+            <p class="text-dark-muted text-lg mb-10">
+                开源，MIT 授权。立即将 <code class="text-brand-400 font-mono bg-dark-surface px-1.5 py-0.5 rounded border border-white/10">astro-reader</code> 加入你的下一个 Astro 项目。
+            </p>
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <a href="https://github.com/sgalcheung/astro-reader" class="px-8 py-4 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-bold text-lg transition-all shadow-lg shadow-brand-500/25 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                    前往 GitHub 查看
+                </a>
+                <a href="#" class="px-8 py-4 bg-dark-surface hover:bg-white/10 text-white border border-white/10 rounded-xl font-bold text-lg transition-all">
+                    阅读完整文件
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="border-t border-white/10 py-12 bg-dark-bg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="flex items-center gap-2">
+                <div class="w-6 h-6 bg-brand-500 rounded flex items-center justify-center font-bold text-white text-xs">A</div>
+                <span class="font-semibold text-dark-muted">astro-reader</span>
+            </div>
+            <div class="text-sm text-dark-muted">
+                MIT Licensed. Made with ❤️ by <a href="https://github.com/sgalcheung" class="text-brand-400 hover:underline">Sgal Cheung</a>.
+            </div>
+            <div class="flex gap-6 text-sm text-dark-muted">
+                <a href="https://github.com/sgalcheung/astro-reader" class="hover:text-white transition-colors">GitHub</a>
+                <a href="#" class="hover:text-white transition-colors">Documentation</a>
+                <a href="#" class="hover:text-white transition-colors">Releases</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Interactive Script -->
+    <script>
+
+      const button = document.querySelector("div.copy");
+      button?.addEventListener('click',()=>{
+        if(button){
+          navigator.clipboard.writeText('npm install astro-reader').then(() => {
+            const originalHTML = button.innerHTML;
+            button.innerHTML = '<svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+            setTimeout(() => { 
+                button.innerHTML = originalHTML; 
+              }, 1000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+          }
+      })
+    </script>
+</body>
+</html>

@@ -2,6 +2,7 @@
 
 import react from "@astrojs/react";
 import starlight from "@astrojs/starlight";
+import tailwindcss from "@tailwindcss/vite";
 import astroReader from "astro-reader";
 import { defineConfig } from "astro/config";
 import { viteStaticCopy } from "vite-plugin-static-copy";
@@ -38,6 +39,7 @@ export default defineConfig({
 					},
 				],
 			}),
+			tailwindcss(),
 		],
 	},
 });
