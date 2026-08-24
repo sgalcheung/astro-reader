@@ -1,10 +1,10 @@
 ---
-import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
-import { DocumentViewer } from 'astro-reader/ui';
-import { type CatalogItem, siteInfo } from '../data/site-info';
-import pdf from '../content/helloworld.pdf';
-import markedDemo from '../content/marked-demo.md';
-import plainTextToPdf from '../content/plain-text-to-pdf.txt';
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
+import { DocumentViewer } from "astro-reader/ui";
+import { type CatalogItem, siteInfo } from "../data/site-info";
+import pdf from "../content/helloworld.pdf";
+import markedDemo from "../content/marked-demo.md";
+import plainTextToPdf from "../content/plain-text-to-pdf.txt";
 
 export async function getStaticPaths() {
 	const pages = await Promise.all(
@@ -27,21 +27,23 @@ const { item } = Astro.props as { item: CatalogItem };
 ---
 
 <StarlightPage frontmatter={{ title: item.label, tableOfContents: false }}>
-  <!-- <DocumentViewer content={pdf} /> -->
-  <!-- <DocumentViewer content={plainTextToPdf} /> -->
-  <!-- <DocumentViewer content={markedDemo} /> -->
+	<!-- from import file -->
+	<!-- <DocumentViewer content={pdf} /> -->
+	<!-- <DocumentViewer content={plainTextToPdf} /> -->
+	<DocumentViewer content={markedDemo} />
 
-  <DocumentViewer url={item.fileUrl} />
+	<!-- from url file  -->
+	<!-- <DocumentViewer url={item.fileUrl} /> -->
 </StarlightPage>
 
 <style>
-  /* 删除 PageTitle 对应的空 ContentPanel */
-  :global(main > .content-panel:first-child) {
-    display: none;
-  }
+	/* 删除 PageTitle 对应的空 ContentPanel */
+	:global(main > .content-panel:first-child) {
+		display: none;
+	}
 
-  /* Clean up excess padding  */
-  :global(.main-frame) {
-    padding-top: 0 !important;
-  }
+	/* Clean up excess padding  */
+	:global(.main-frame) {
+		padding-top: 0 !important;
+	}
 </style>
