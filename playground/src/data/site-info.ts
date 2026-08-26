@@ -13,9 +13,9 @@ export type SiteInfo = {
 	catalogs: CatalogType;
 };
 
-const PROXY_SERVER = "https://cors-anywhere.herokuapp.com" as const;
+// const PROXY_SERVER = "https://cors-anywhere.herokuapp.com" as const;
 
-const toProxyPdfUrl = (fileUrl: string) => `${PROXY_SERVER}/${fileUrl}`;
+// const toProxyPdfUrl = (fileUrl: string) => `${PROXY_SERVER}/${fileUrl}`;
 
 export const siteInfo: SiteInfo = {
 	catalogs: [
@@ -30,7 +30,28 @@ export const siteInfo: SiteInfo = {
 				{
 					label: "Sample PDF",
 					link: "/getting-started/sample-pdf",
-					fileUrl: "https://ontheline.trincoll.edu/images/bookdown/sample-local-pdf.pdf",
+					fileUrl:
+						"https://ontheline.trincoll.edu/images/bookdown/sample-local-pdf.pdf",
+				},
+			],
+		},
+		{
+			label: "txt-asset",
+			items: [
+				{
+					label: "plain-text-to-pdf",
+					link: "/txt-asset/plain-text-to-pdf",
+					fileUrl: "src/content/plain-text-to-pdf.txt",
+				},
+			],
+		},
+		{
+			label: "markdown-assert",
+			items: [
+				{
+					label: "marked-demo",
+					link: "/markdown-assert/marked-demo",
+					fileUrl: "src/content/marked-demo.md",
 				},
 			],
 		},
@@ -46,16 +67,6 @@ export const siteInfo: SiteInfo = {
 					label: "专栏导语（本地）",
 					link: "/jpa/jpa-research-methods-local",
 					fileUrl: "src/content/jpa-research-methods.pdf",
-				},
-			],
-		},
-		{
-			label: "astro-emit-asset",
-			items: [
-				{
-					label: "plain-text-to-pdf",
-					link: "/astro-emit-asset/plain-text-to-pdf",
-					fileUrl: "src/content/plain-text-to-pdf.txt",
 				},
 			],
 		},

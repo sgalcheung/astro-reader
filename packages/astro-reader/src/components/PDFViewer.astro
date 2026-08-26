@@ -1,245 +1,292 @@
 ---
 import type { Page } from '../types.js';
+import { getState } from '../state.js';
 
 interface Props {
 	page: Page;
 }
 
+const { enableProxy } = getState();
+
 const { page } = Astro.props;
+
+const fetchTarget = enableProxy
+	? `/api/pdf-proxy?key=${encodeURIComponent(btoa(page.src))}`
+	: page.src;
+// const fetchTarget = enableProxy ? '/api/pdf-proxy' : page.src;
 
 const viewerId = `pdf-viewer-${crypto.randomUUID()}`;
 ---
 
-<div id={viewerId} class='viewerContainer' data-pdf-url={page.src}>
-  <div class='viewer pdfViewer'></div>
+<div
+	id={viewerId}
+	class="viewerContainer"
+	data-pdf-target={fetchTarget}
+	data-enable-proxy={enableProxy ? 'true' : 'false'}
+>
+	<div class="viewer pdfViewer"></div>
 </div>
 
 <style>
-  .viewerContainer {
-    left: 60%;
-    right: auto;
+	.viewerContainer {
+		left: 60%;
+		right: auto;
 
-    width: 256mm;
-    max-width: calc(100vw - 2rem);
+		width: 256mm;
+		max-width: calc(100vw - 2rem);
 
-    transform: translateX(-50%);
+		transform: translateX(-50%);
 
-    position: absolute;
-    overflow: visible !important;
-    height: auto !important;
-    max-height: none !important;
+		position: absolute;
+		overflow: visible !important;
+		height: auto !important;
+		max-height: none !important;
 
-    /* background: #f9f9f9; */
-  }
+		/* background: #f9f9f9; */
+	}
 
-  .viewer {
-    position: relative;
-  }
+	.viewer {
+		position: relative;
+	}
 </style>
 <script>
-  import * as pdfjsLib from 'pdfjs-dist';
-  import * as pdfjsViewer from 'pdfjs-dist/web/pdf_viewer.mjs';
+	import * as pdfjsLib from 'pdfjs-dist';
+	import * as pdfjsViewer from 'pdfjs-dist/web/pdf_viewer.mjs';
 
-  import 'pdfjs-dist/web/pdf_viewer.css';
+	import 'pdfjs-dist/web/pdf_viewer.css';
+	import PDFDocument from 'pdfkit/js/pdfkit.standalone';
+	import SVGtoPDF from 'svg-to-pdfkit';
 
-  /*
-   * PDF.js Worker
-   */
-  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.mjs',
-    import.meta.url,
-  ).toString();
+	/*
+	 * PDF.js Worker
+	 */
+	pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+		'pdfjs-dist/build/pdf.worker.mjs',
+		import.meta.url
+	).toString();
 
-  /*
-   * Base URL
-   *
-   * /starpdf/
-   */
-  const basePath = import.meta.env.BASE_URL;
+	/*
+	 * Base URL
+	 *
+	 * /starpdf/
+	 */
+	const basePath = import.meta.env.BASE_URL;
 
-  const CMAP_URL = basePath ? `${basePath}/cmaps/` : '/cmaps/';
+	const CMAP_URL = basePath ? `${basePath}/cmaps/` : '/cmaps/';
 
-  /*
-   * PDF.js Sandbox
-   */
-  const SANDBOX_BUNDLE_SRC = new URL(
-    'pdfjs-dist/build/pdf.sandbox.mjs',
-    import.meta.url,
-  ).toString();
+	/*
+	 * PDF.js Sandbox
+	 */
+	const SANDBOX_BUNDLE_SRC = new URL(
+		'pdfjs-dist/build/pdf.sandbox.mjs',
+		import.meta.url
+	).toString();
 
-  async function initPdfViewer() {
-    const containers =
-      document.querySelectorAll<HTMLDivElement>('.viewerContainer');
+	async function initPdfViewer() {
+		const containers = document.querySelectorAll<HTMLDivElement>('.viewerContainer');
 
-    for (const container of containers) {
-      /*
-       * 防止重复初始化
-       */
-      if (container.dataset.initialized === 'true') {
-        continue;
-      }
+		for (const container of containers) {
+			// 防止重复初始化
+			if (container.dataset.initialized === 'true') {
+				continue;
+			}
 
-      /*
-       * PDF URL
-       */
-      const pdfUrl = container.dataset.pdfUrl;
+			let fetchTarget = container.dataset.pdfTarget;
+			const enableProxy = container.dataset.enableProxy === 'true';
+			if (enableProxy) fetchTarget = basePath ? basePath + fetchTarget : fetchTarget;
 
-      if (!pdfUrl) {
-        console.error('[PDF] pdfUrl is empty');
+			if (!fetchTarget) {
+				console.error('[PDF] Target is empty');
 
-        continue;
-      }
+				continue;
+			}
 
-      /*
-       * PDF.js 要求：
-       *
-       * container
-       *   └── viewer
-       */
-      const viewer = container.firstElementChild;
+			/*
+			 * PDF.js 要求：
+			 *
+			 * container
+			 *   └── viewer
+			 */
+			const viewer = container.firstElementChild;
 
-      if (!(viewer instanceof HTMLDivElement)) {
-        console.error('[PDF] viewer must be HTMLDivElement');
+			if (!(viewer instanceof HTMLDivElement)) {
+				console.error('[PDF] viewer must be HTMLDivElement');
+				continue;
+			}
 
-        continue;
-      }
+			container.dataset.initialized = 'true';
 
-      /*
-       * 标记初始化
-       */
-      container.dataset.initialized = 'true';
+			const eventBus = new pdfjsViewer.EventBus();
 
-      /*
-       * EventBus
-       */
-      const eventBus = new pdfjsViewer.EventBus();
+			const pdfLinkService = new pdfjsViewer.PDFLinkService({
+				eventBus,
+			});
 
-      /*
-       * Link Service
-       */
-      const pdfLinkService = new pdfjsViewer.PDFLinkService({
-        eventBus,
-      });
+			const pdfFindController = new pdfjsViewer.PDFFindController({
+				eventBus,
+				linkService: pdfLinkService,
+			});
 
-      /*
-       * Find Controller
-       */
-      const pdfFindController = new pdfjsViewer.PDFFindController({
-        eventBus,
-        linkService: pdfLinkService,
-      });
+			const pdfScriptingManager = new pdfjsViewer.PDFScriptingManager({
+				eventBus,
 
-      /*
-       * Scripting Manager
-       */
-      const pdfScriptingManager = new pdfjsViewer.PDFScriptingManager({
-        eventBus,
+				sandboxBundleSrc: SANDBOX_BUNDLE_SRC,
+			});
 
-        sandboxBundleSrc: SANDBOX_BUNDLE_SRC,
-      });
+			const pdfViewer = new pdfjsViewer.PDFViewer({
+				container,
+				eventBus,
+				linkService: pdfLinkService,
+				findController: pdfFindController,
+				scriptingManager: pdfScriptingManager,
+			});
 
-      /*
-       * PDF Viewer
-       *
-       * 注意：
-       *
-       * 这里传 container
-       * 而不是 viewer
-       */
-      const pdfViewer = new pdfjsViewer.PDFViewer({
-        container,
+			pdfLinkService.setViewer(pdfViewer);
 
-        eventBus,
+			pdfScriptingManager.setViewer(pdfViewer);
 
-        linkService: pdfLinkService,
+			eventBus.on('pagesinit', () => {
+				pdfViewer.currentScaleValue = 'page-width';
+			});
 
-        findController: pdfFindController,
+			const response = await fetch(fetchTarget, {
+				headers: {
+					'x-requested-with': 'XMLHttpRequest',
+				},
+			});
 
-        scriptingManager: pdfScriptingManager,
-      });
+			let objectURL = '';
 
-      /*
-       * 设置 Viewer
-       */
-      pdfLinkService.setViewer(pdfViewer);
+			// SVG => PDF
+			if (response.url.endsWith('svg')) {
+				objectURL = await generatePdfBlobFromSvg(response);
+			} else { // PDF file directly
+				const blob = await response.blob();
+				objectURL = URL.createObjectURL(blob);
+			}
 
-      pdfScriptingManager.setViewer(pdfViewer);
+			container.dataset.blobUrl = objectURL;
 
-      /*
-       * 页面初始化完成
-       */
-      eventBus.on('pagesinit', () => {
-        pdfViewer.currentScaleValue = 'page-width';
-      });
+			// PDF.js Loading
+			const loadingTask = pdfjsLib.getDocument({
+				// data: arrayBuffer,
+				url: objectURL,
+				cMapUrl: CMAP_URL,
+				cMapPacked: true,
+				enableXfa: true,
+			});
 
-      /*
-       * Fetch PDF
-       */
-      const response = await fetch(pdfUrl, {
-        headers: {
-          'x-requested-with': 'XMLHttpRequest',
-        },
-      });
+			// wait PDF.js
+			const pdfDocument = await loadingTask.promise;
 
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch PDF: ${response.status} ${response.statusText}`,
-        );
-      }
+			pdfViewer.setDocument(pdfDocument);
 
-      /*
-       * ArrayBuffer
-       */
-      const arrayBuffer = await response.arrayBuffer();
+			pdfLinkService.setDocument(pdfDocument, null);
+		}
+	}
 
-      /*
-       * PDF.js Loading
-       */
-      const loadingTask = pdfjsLib.getDocument({
-        data: arrayBuffer,
+	/**
+	 * 将 SVG 文本异步转换为 PDF Blob URL
+	 * @param {string} svgText - SVG 字符串
+	 * @param {number} width - PDF 宽度
+	 * @param {number} height - PDF 高度
+	 * @returns {Promise<string>} 返回生成的 Blob URL
+	 */
+	async function generatePdfBlobFromSvg(response: Response): Promise<string> {
+		const svgText = await response.text();
 
-        cMapUrl: CMAP_URL,
+		// Parse SVG string to DOM
+		const parser = new DOMParser();
+		const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
+		const svgElement = svgDoc.documentElement;
 
-        cMapPacked: true,
+		// Get width and height
+		const width = parseInt(svgElement.getAttribute('width')!);
+		const height = parseInt(svgElement.getAttribute('height')!);
 
-        enableXfa: true,
-      });
+		if (!response.ok) {
+			throw new Error(`Failed to fetch PDF: ${response.status} ${response.statusText}`);
+		}
 
-      /*
-       * 等待 PDF.js
-       */
-      const pdfDocument = await loadingTask.promise;
+		return new Promise((resolve, reject) => {
+			const doc = new PDFDocument({
+				compress: false,
+				size: [width, height],
+			});
 
-      /*
-       * 设置 PDF Document
-       */
-      pdfViewer.setDocument(pdfDocument);
+			const chunks: Uint8Array[] = [];
 
-      /*
-       * Link Service
-       */
-      pdfLinkService.setDocument(pdfDocument, null);
-    }
-  }
+			// 1. 收集数据块 (浏览器中 chunk 是 Uint8Array)
+			doc.on('data', (chunk) => {
+				chunks.push(chunk);
+			});
 
-  /*
-   * Astro Component 的 script
-   * 可能比组件 DOM 更早执行。
-   */
-  setTimeout(() => {
-    initPdfViewer().catch((error) => {
-      console.error('[PDF] initialization failed:', error);
-    });
-  }, 0);
+			// 2. 生成完成，创建 Blob 并 resolve
+			doc.on('end', () => {
+				try {
+					// 浏览器原生高效合并 Uint8Array 数组
+					const blob = new Blob(chunks as unknown as BlobPart[], {
+						type: 'application/pdf',
+					});
+					const objectURL = URL.createObjectURL(blob);
+					resolve(objectURL);
+				} catch (error) {
+					reject(new Error(`Failed to create Blob: ${error}`));
+				}
+			});
 
-  /*
-   * Starlight 客户端导航
-   */
-  document.addEventListener('astro:after-swap', () => {
-    setTimeout(() => {
-      initPdfViewer().catch((error) => {
-        console.error('[PDF] navigation initialization failed:', error);
-      });
-    }, 0);
-  });
+			// 3. 错误处理
+			doc.on('error', (err) => {
+				reject(err);
+			});
+
+			// 4. 执行 SVG 到 PDF 的绘制
+			try {
+				SVGtoPDF(doc, svgText, 0, 0, {
+					width,
+					height,
+					preserveAspectRatio: 'xMidYMid meet',
+				});
+
+				// 5. 结束写入，触发 'end' 事件
+				doc.end();
+			} catch (error) {
+				reject(error);
+			}
+		});
+	}
+
+	function cleanupOldBlobs() {
+		const containers = document.querySelectorAll<HTMLDivElement>('.viewerContainer');
+		for (const container of containers) {
+			if (container.dataset.blobUrl) {
+				URL.revokeObjectURL(container.dataset.blobUrl);
+				delete container.dataset.blobUrl;
+			}
+		}
+	}
+
+	/*
+	 * Astro Component 的 script
+	 * 可能比组件 DOM 更早执行。
+	 */
+	setTimeout(() => {
+		initPdfViewer().catch((error) => {
+			console.error('[PDF] initialization failed:', error);
+		});
+	}, 0);
+
+	/*
+	 * Starlight 客户端导航
+	 */
+	document.addEventListener('astro:before-swap', () => {
+		cleanupOldBlobs();
+	});
+	document.addEventListener('astro:after-swap', () => {
+		setTimeout(() => {
+			initPdfViewer().catch((error) => {
+				console.error('[PDF] navigation initialization failed:', error);
+			});
+		}, 0);
+	});
 </script>

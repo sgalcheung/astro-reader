@@ -1,13 +1,10 @@
 ---
-import path from 'node:path';
 import {
 	type DocumentResource,
-	fromBinaryPathOrUrl,
-	fromLocalFile,
-	fromMarkdownPathOrUrl,
-	fromTextPathOrUrl,
+	fromImportFile,
 	getDocumentViewer,
-  type LocalFileContent,
+	type LocalFileContent,
+	fromUrlFile,
 } from './DocumentViewer.js';
 import PDFViewer from './PDFViewer.astro';
 import SVGViewer from './SVGViewer.astro';
@@ -24,38 +21,28 @@ const { format = 'pdf', content, url, ...restProps } = Astro.props;
 
 let resource: DocumentResource;
 
-function isLocalFileContent(data: unknown): data is LocalFileContent {
-  return (
-    typeof data === 'object' && 
-    data !== null && 
-    'resourceType' in data && 
-    'filePath' in data
-  );
+function isImportFileContent(data: unknown): data is LocalFileContent {
+	return (
+		typeof data === 'object' &&
+		data !== null &&
+		'resourceType' in data &&
+		'filePath' in data
+	);
 }
 
 if (content) {
-  if (isLocalFileContent(content)) {
-    resource = fromLocalFile(content);
-  } else {
-    throw new Error('<DocumentViewer> Unrecognized content format.');
-  }
+	if (isImportFileContent(content)) {
+		resource = fromImportFile(content, format);
+	} else {
+		throw new Error('<DocumentViewer> Unrecognized content format.');
+	}
 } else if (url) {
-	const ext = path.extname(url).toLowerCase();
-  
-  if (ext === '.pdf') {
-    resource = await fromBinaryPathOrUrl(url);
-  } else if (ext === '.txt') {
-    resource = await fromTextPathOrUrl(url);
-  } else if (ext === '.md' || ext === '.markdown') {
-    resource = await fromMarkdownPathOrUrl(url);
-  } else {
-    throw new Error(`<DocumentViewer> Unsupported file extension for url: ${ext}`);
-  }
+	resource = await fromUrlFile(url);
 } else {
 	throw new Error('<DocumentViewer> requires either `content` or `url` prop.');
 }
 
-const page = await getDocumentViewer(resource, format);
+const page = await getDocumentViewer({ cacheFormat: 'svg', ...resource });
 ---
 
 {format === 'pdf' ? <PDFViewer page={page} /> : <SVGViewer page={page} />}

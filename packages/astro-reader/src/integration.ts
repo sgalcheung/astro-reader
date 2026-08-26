@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-
+import * as fss from "node:fs";
 import type { AstroConfig, AstroIntegration } from "astro";
 import emitAssetIntegration from "astro-emit-asset";
 
@@ -8,21 +8,28 @@ import { setState } from "./state.ts";
 import { EXTENSIONS } from "./types.ts";
 import { titleFor } from "./utils/titleFor.ts";
 import { typeDeclarationsFor } from "./utils/typeDeclarationsFor.ts";
+import { fileURLToPath } from "node:url";
 
-export function astroReader(options: { fontName?: string } = {}): AstroIntegration {
+export function astroReader(options: { fontName?: string, enableProxy?: boolean; } = {}): AstroIntegration {
 	return {
 		name: "astro-reader",
 		hooks: {
 			"astro:config:setup": async ({ config, command, updateConfig, logger }) => {
 				const isDev = command === "dev";
 
+        if (options.enableProxy){
+          generateProxyAPI(config);
+        }
+
         const host = config.server?.host === true ? 'localhost' : (config.server?.host || 'localhost');
         const port = config.server?.port || 4321;
         const devServerUrl = `http://${host}:${port}`;
 
 				setState({
+          enableProxy: options.enableProxy,
 					fontName:options.fontName,
           devServerUrl,
+          filePathMap: {},
 					defaults: undefined,
 					timeout: undefined,
 					isDev,
@@ -76,6 +83,69 @@ export function astroReader(options: { fontName?: string } = {}): AstroIntegrati
 			},
 		},
 	};
+}
+
+function generateProxyAPI(config: AstroConfig){
+        const rootDir = fileURLToPath(config.root);
+        const apiDir = path.join(rootDir, 'src/pages/api');
+        const apiFilePath = path.join(apiDir, 'pdf-proxy.ts');
+
+        if (!fss.existsSync(apiDir)) {
+          fss.mkdirSync(apiDir, { recursive: true });
+        }
+
+        // 如果 API 文件不存在，则自动写入模板代码
+        if (!fss.existsSync(apiFilePath)) {
+          const apiTemplate = `
+import type { APIRoute } from 'astro';
+export const prerender = false; 
+
+export const GET: APIRoute = async ({ request, url }) => {
+  const searchParams = new URL(request.url).searchParams;
+  const key = searchParams.get('key');
+  
+  if (!key) {
+    return new Response('Missing PDF key', { status: 400 });
+  }
+
+  try {
+    // 解码 Base64 获取真实 URL 
+    // ⚠️ 生产环境安全建议：建议将此逻辑替换为通过 key (作为 ID) 查询数据库获取真实 URL
+    const targetUrl = atob(key);
+    const fullUrl = targetUrl.startsWith('http') 
+      ? targetUrl 
+      : new URL(targetUrl, url.origin).toString();
+
+    const response = await fetch(fullUrl, {
+      headers: { 
+        'x-requested-with': 'XMLHttpRequest',
+        // 可在此处添加宿主项目的全局鉴权 Header，例如:
+        // 'Authorization': \`Bearer \${process.env.PDF_SECRET}\`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(\`Backend fetch failed: \${response.status}\`);
+    }
+
+    // 将远程流直接 Pipe 给前端，不占用服务端多余内存
+    return new Response(response.body, {
+      status: 200,
+      headers: {
+        'Content-Type': response.headers.get('Content-Type') || 'application/pdf',
+        'Content-Disposition': 'inline',
+        'Cache-Control': 'private, max-age=3600'
+      }
+    });
+  } catch (error) {
+    console.error('[PDF Proxy Error]', error);
+    return new Response('Failed to load PDF', { status: 500 });
+  }
+};`;
+          
+          fss.writeFileSync(apiFilePath, apiTemplate, 'utf-8');
+          console.log('✅ [astro-reader] PDF proxy API was automatically generated.: src/pages/api/pdf.ts');
+}
 }
 
 type VitePlugin = NonNullable<AstroConfig["vite"]["plugins"]>[number];

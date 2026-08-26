@@ -7,34 +7,12 @@ import { PDFDocument } from "pdf-lib";
 import satori from "satori";
 import { html } from "satori-html";
 import { fontData, experimental_getFontFileURL, type FontData } from "astro:assets";
-import { getState } from "../state.ts";
+import { getState } from "../state.js";
+import PDFKitPDFDocument  from 'pdfkit/js/pdfkit.standalone'
+import { markdown2typst } from 'markdown2typst';
+import { NodeCompiler } from "@myriaddreamin/typst-ts-node-compiler";
 
 
-// const fontPath = path.resolve(process.cwd(), "public/fonts/LXGWWenKai-Regular.ttf");
-
-// let fontBuffer: Buffer | null = null;
-// let fontLoadError: Error | null = null;
-
-// async function getFontBuffer() {
-// 	if (fontBuffer) return fontBuffer;
-// 	if (fontLoadError) throw fontLoadError;
-
-// 	try {
-// 		fontBuffer = await fs.readFile(fontPath);
-// 	} catch (err) {
-// 		// ⭐ 核心修改：提供极其清晰的错误提示，而不是晦涩的 ENOENT
-// 		fontLoadError = new Error(
-// 			`[astro-reader] 找不到中文字体文件！\n` +
-// 				`预期路径: ${fontPath}\n` +
-// 				`请确保已将 .ttf 或 .otf 字体文件放置在此路径下。\n` +
-// 				`下载地址参考: https://github.com/lxgw/LxgwWenKai/releases`,
-// 		);
-// 		console.warn("\n⚠️", fontLoadError.message, "\n");
-// 		throw fontLoadError;
-// 	}
-
-// 	return fontBuffer;
-// }
 
 // https://docs.astro.build/en/guides/fonts/#accessing-font-data-programmatically
 let fontBuffer: ArrayBuffer | null = null;
@@ -191,78 +169,134 @@ export async function renderHtmlToSvg(
 	return Buffer.from(svg, "utf-8");
 }
 
+
 export async function renderContentToPdf(
 	title: string,
 	content: string,
 	isMarkdown = false,
+  outputFormat: string,
 ): Promise<Buffer> {
-	const fontData = await getFontBuffer();
 
 	let bodyHtml = content;
-	if (isMarkdown) {
-		bodyHtml = await marked.parse(content);
-	} else {
-		bodyHtml = content.replace(/\n/g, "<br/>");
-	}
+	// if (isMarkdown) {
+	// 	bodyHtml = await marked.parse(content);
+	// } else {
+	// 	bodyHtml = content.replace(/\n/g, "<br/>");
+	// }
 
-	const htmlString = `
-    <div style="display:flex; flex-direction:column; width:100%; height:100%; padding:60px; font-family:'CustomFont'; background:#ffffff; color:#333333; box-sizing: border-box;">
-      <h1 style="font-size:48px; font-weight:bold; margin: 0 0 30px 0; padding-bottom:15px; border-bottom:2px solid #eee; color:#111; line-height: 1.2;">
-        ${title}
-      </h1>
+	// const htmlString = `
+  //   <div style="display:flex; flex-direction:column; width:100%; height:100%; padding:60px; font-family:'CustomFont'; background:#ffffff; color:#333333; box-sizing: border-box;">
+  //     <h1 style="font-size:48px; font-weight:bold; margin: 0 0 30px 0; padding-bottom:15px; border-bottom:2px solid #eee; color:#111; line-height: 1.2;">
+  //       ${title}
+  //     </h1>
       
-      <div style="display: flex; flex-direction: column; font-size:24px; line-height:1.8; letter-spacing:0.02em; gap: 15px;">
-        ${bodyHtml}
-      </div>
+  //     <div style="display: flex; flex-direction: column; font-size:24px; line-height:1.8; letter-spacing:0.02em; gap: 15px;">
+  //       ${bodyHtml}
+  //     </div>
 
-      <style>
-        * { box-sizing: border-box; }
-        p { margin: 0 0 20px 0; line-height: 1.8; }
-        ul, ol { margin: 0 0 20px 0; padding-left: 40px; display: flex; flex-direction: column; gap: 10px; }
-        li { margin: 0; line-height: 1.6; }
-        blockquote { margin: 0 0 20px 0; padding: 15px 20px; border-left: 4px solid #ddd; background: #f9f9f9; color: #555; font-style: italic; }
-        pre { margin: 0 0 20px 0; background: #f4f4f4; padding: 20px; border-radius: 8px; overflow-x: auto; font-family: monospace; font-size: 20px; line-height: 1.5; }
-        code { font-family: monospace; background: #f4f4f4; padding: 2px 6px; border-radius: 4px; font-size: 20px; }
-        pre code { background: transparent; padding: 0; }
-        h2 { font-size: 36px; margin: 30px 0 15px 0; font-weight: bold; line-height: 1.3; }
-        h3 { font-size: 28px; margin: 25px 0 12px 0; font-weight: bold; line-height: 1.3; }
-        a { color: #007bff; text-decoration: underline; }
-      </style>
-    </div>
-  `;
+  //     <style>
+  //       * { box-sizing: border-box; }
+  //       p { margin: 0 0 20px 0; line-height: 1.8; }
+  //       ul, ol { margin: 0 0 20px 0; padding-left: 40px; display: flex; flex-direction: column; gap: 10px; }
+  //       li { margin: 0; line-height: 1.6; }
+  //       blockquote { margin: 0 0 20px 0; padding: 15px 20px; border-left: 4px solid #ddd; background: #f9f9f9; color: #555; font-style: italic; }
+  //       pre { margin: 0 0 20px 0; background: #f4f4f4; padding: 20px; border-radius: 8px; overflow-x: auto; font-family: monospace; font-size: 20px; line-height: 1.5; }
+  //       code { font-family: monospace; background: #f4f4f4; padding: 2px 6px; border-radius: 4px; font-size: 20px; }
+  //       pre code { background: transparent; padding: 0; }
+  //       h2 { font-size: 36px; margin: 30px 0 15px 0; font-weight: bold; line-height: 1.3; }
+  //       h3 { font-size: 28px; margin: 25px 0 12px 0; font-weight: bold; line-height: 1.3; }
+  //       a { color: #007bff; text-decoration: underline; }
+  //     </style>
+  //   </div>
+  // `;
 
 	// Satori: HTML -> SVG
-	const markup = html(htmlString);
+	// const markup = html(bodyHtml);
 	const PAGE_WIDTH = 1200;
 	const PAGE_HEIGHT = 1600;
 
-	const svg = await satori(markup as any, {
-		width: PAGE_WIDTH,
-		height: PAGE_HEIGHT,
-		fonts: [{ name: "CustomFont", data: fontData, weight: 400, style: "normal" }],
-	});
 
-	// Resvg: SVG -> PNG (2x)
-	const resvg = new Resvg(svg, {
-		fitTo: { mode: "width", value: PAGE_WIDTH * 2 },
-	});
-	const pngBuffer = resvg.render().asPng();
 
-	// ⭐ Pdf-lib: PNG -> PDF
-	const pdfDoc = await PDFDocument.create();
+  const md2typstString = markdown2typst(content);
+  const showLink = "#show link: it => { set text(fill: blue); underline(it) }";
+  const typstSource = `${showLink} \n${md2typstString}`
 
-	// page A4 size (595.28 x 841.89 points)
-	const page = pdfDoc.addPage([595.28, 841.89]);
+  const compiler = NodeCompiler.create();
 
-	const pngImage = await pdfDoc.embedPng(pngBuffer);
+  let svgResult = '';
 
-	page.drawImage(pngImage, {
-		x: 0,
-		y: 0,
-		width: 595.28,
-		height: 841.89,
-	});
 
-	const pdfBytes = await pdfDoc.save();
-	return Buffer.from(pdfBytes);
+  if (outputFormat === 'pdf') {
+    svgResult = await compiler.plainSvg({
+  mainFileContent: typstSource,
+})
+  } else if (outputFormat === 'svg') {
+svgResult = await compiler.svg({
+  mainFileContent: typstSource,
+  })
 }
+
+// console.log(svgResult);
+
+// return null;
+return Buffer.from(svgResult);
+	const svg = await renderSatoriToSvg(markup, PAGE_WIDTH, PAGE_HEIGHT);
+
+  return svg;
+
+	// // Resvg: SVG -> PNG (2x)
+	// const resvg = new Resvg(svg, {
+	// 	fitTo: { mode: "width", value: PAGE_WIDTH * 2 },
+	// });
+	// const pngBuffer = resvg.render().asPng();
+
+	// // ⭐ Pdf-lib: PNG -> PDF
+	// const pdfDoc = await PDFDocument.create();
+
+	// // page A4 size (595.28 x 841.89 points)
+	// const page = pdfDoc.addPage([595.28, 841.89]);
+
+	// const pngImage = await pdfDoc.embedPng(pngBuffer);
+
+	// page.drawImage(pngImage, {
+	// 	x: 0,
+	// 	y: 0,
+	// 	width: 595.28,
+	// 	height: 841.89,
+	// });
+
+	// const pdfBytes = await pdfDoc.save();
+	// return Buffer.from(pdfBytes);
+}
+
+
+
+// use blob temp cache binary file
+// let objectURL = '';
+  
+//   // To update:
+//   function setObjectURL(newURL: string) {
+//     objectURL = newURL;
+//   console.log(objectURL);
+//     // store cache
+//   }
+
+// function generatePdf(svgContent: string){
+//   const width=595.28;
+// 		const height=841.89;
+//   const doc = new PDFKitPDFDocument({
+//                 compress: false,
+//                 size: [width, height],
+//               })
+//               SVGtoPDF(doc, svgContent, 0, 0, {
+//                 width,
+//                 height,
+//                 preserveAspectRatio: `xMidYMid meet`,
+//               })
+//               const stream = doc.pipe(blobStream())
+//               stream.on('finish', () => {
+//                 const blob = stream.toBlob('application/pdf')
+//                 setObjectURL(URL.createObjectURL(blob))
+//               })
+//               doc.end()
+// }

@@ -2,6 +2,7 @@ packages:
   - packages/*
   - playground
 allowBuilds:
+  core-js: true
   esbuild: false
   sharp: false
 catalog:
