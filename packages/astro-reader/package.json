@@ -42,7 +42,6 @@
   "dependencies": {
     "@myriaddreamin/typst-ts-node-compiler": "^0.7.0",
     "astro-emit-asset": "^0.1.4",
-    "jspdf": "^4.2.1",
     "markdown2typst": "^0.1.4",
     "marked": "^18.0.9",
     "pdf-lib": "^1.17.1",
@@ -51,9 +50,7 @@
     "playwright": "^1.62.1",
     "satori": "^0.30.0",
     "satori-html": "^0.3.2",
-    "svg-to-pdfkit": "^0.1.8",
-    "svg2pdf.js": "^2.7.0",
-    "vector-pdf-converter": "0.1.0-alpha2"
+    "svg-to-pdfkit": "^0.1.8"
   },
   "devDependencies": {
     "@resvg/resvg-js": "^2.6.2",

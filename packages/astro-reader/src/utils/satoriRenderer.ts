@@ -221,19 +221,19 @@ export async function renderContentToPdf(
   const showLink = "#show link: it => { set text(fill: blue); underline(it) }";
   const typstSource = `${showLink} \n${md2typstString}`
 
-  const compiler = NodeCompiler.create();
+  const $typst = NodeCompiler.create();
 
   let svgResult = '';
 
 
-  if (outputFormat === 'pdf') {
-    svgResult = await compiler.plainSvg({
+  if (outputFormat === 'svg') {
+    svgResult = $typst.plainSvg({
   mainFileContent: typstSource,
 })
-  } else if (outputFormat === 'svg') {
-svgResult = await compiler.svg({
+  } else if (outputFormat === 'pdf') {
+svgResult = $typst.svg({
   mainFileContent: typstSource,
-  })
+})
 }
 
 // console.log(svgResult);
