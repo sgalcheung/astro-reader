@@ -56,6 +56,7 @@
     "@resvg/resvg-js": "^2.6.2",
     "@types/pdfkit": "^0.17.6",
     "@types/svg-to-pdfkit": "^0.1.4",
+    "acorn": "^8.18.0",
     "tsdown": "0.22.14",
     "typescript": "catalog:"
   }

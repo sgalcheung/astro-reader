@@ -1,35 +1,39 @@
+import * as fss from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
-import * as fss from "node:fs";
+import { fileURLToPath } from "node:url";
+
 import type { AstroConfig, AstroIntegration } from "astro";
 import emitAssetIntegration from "astro-emit-asset";
 
 import { setState } from "./state.ts";
-import { EXTENSIONS } from "./types.ts";
-import { titleFor } from "./utils/titleFor.ts";
-import { typeDeclarationsFor } from "./utils/typeDeclarationsFor.ts";
-import { fileURLToPath } from "node:url";
+import { EXTENSION_MAP, EXTENSIONS, type AstroReaderImportFile } from "./types.js";
+import { extractRawContent } from "./utils/acornHelper.ts";
+import { sourceNameFor } from "./utils/filePathHelper.ts";
 
-export function astroReader(options: { fontName?: string, enableProxy?: boolean; } = {}): AstroIntegration {
+export function astroReader(
+	options: { fontName?: string; enableProxy?: boolean } = {},
+): AstroIntegration {
 	return {
 		name: "astro-reader",
 		hooks: {
 			"astro:config:setup": async ({ config, command, updateConfig, logger }) => {
 				const isDev = command === "dev";
 
-        if (options.enableProxy){
-          generateProxyAPI(config);
-        }
+				if (options.enableProxy) {
+					generateProxyAPI(config);
+				}
 
-        const host = config.server?.host === true ? 'localhost' : (config.server?.host || 'localhost');
-        const port = config.server?.port || 4321;
-        const devServerUrl = `http://${host}:${port}`;
+				const host =
+					config.server?.host === true ? "localhost" : config.server?.host || "localhost";
+				const port = config.server?.port || 4321;
+				const devServerUrl = `http://${host}:${port}`;
 
 				setState({
-          enableProxy: options.enableProxy,
-					fontName:options.fontName,
-          devServerUrl,
-          filePathMap: {},
+					enableProxy: options.enableProxy,
+					fontName: options.fontName,
+					devServerUrl,
+					filePathMap: {},
 					defaults: undefined,
 					timeout: undefined,
 					isDev,
@@ -85,18 +89,18 @@ export function astroReader(options: { fontName?: string, enableProxy?: boolean;
 	};
 }
 
-function generateProxyAPI(config: AstroConfig){
-        const rootDir = fileURLToPath(config.root);
-        const apiDir = path.join(rootDir, 'src/pages/api');
-        const apiFilePath = path.join(apiDir, 'pdf-proxy.ts');
+function generateProxyAPI(config: AstroConfig) {
+	const rootDir = fileURLToPath(config.root);
+	const apiDir = path.join(rootDir, "src/pages/api");
+	const apiFilePath = path.join(apiDir, "pdf-proxy.ts");
 
-        if (!fss.existsSync(apiDir)) {
-          fss.mkdirSync(apiDir, { recursive: true });
-        }
+	if (!fss.existsSync(apiDir)) {
+		fss.mkdirSync(apiDir, { recursive: true });
+	}
 
-        // 如果 API 文件不存在，则自动写入模板代码
-        if (!fss.existsSync(apiFilePath)) {
-          const apiTemplate = `
+	// 如果 API 文件不存在，则自动写入模板代码
+	if (!fss.existsSync(apiFilePath)) {
+		const apiTemplate = `
 import type { APIRoute } from 'astro';
 export const prerender = false; 
 
@@ -142,88 +146,63 @@ export const GET: APIRoute = async ({ request, url }) => {
     return new Response('Failed to load PDF', { status: 500 });
   }
 };`;
-          
-          fss.writeFileSync(apiFilePath, apiTemplate, 'utf-8');
-          console.log('✅ [astro-reader] PDF proxy API was automatically generated.: src/pages/api/pdf.ts');
+
+		fss.writeFileSync(apiFilePath, apiTemplate, "utf-8");
+		console.log(
+			"✅ [astro-reader] PDF proxy API was automatically generated.: src/pages/api/pdf.ts",
+		);
+	}
 }
+
+function typeDeclarationsFor(extensions: readonly string[]): string {
+	return extensions
+		.map(
+			(ext) =>
+				`declare module "*${ext}" {\n  const arif: import("astro-reader").AstroReaderImportFile;\n  export default arif;\n}`,
+		)
+		.join("\n");
 }
 
 type VitePlugin = NonNullable<AstroConfig["vite"]["plugins"]>[number];
 
 function vitePluginImportContent() {
 	return {
-		name: "vite-plugin-astro-reader-content-loader",
+		name: "vite-plugin-astro-reader-content",
 		enforce: "pre",
-
-		async transform(code, id) {
-			const isMd = id.endsWith(".md") || id.endsWith(".markdown");
-			const isPdf = id.endsWith(".pdf");
-			const isText = id.endsWith(".txt");
-
+		async transform(source, id) {
 			// 排除带查询参数的文件 (如 ?url, ?raw, ?astro)
-			if (!(isMd || isPdf || isText) || id.includes("?")) {
-				return null; // 放行，交给 Astro 或 Vite 默认处理
+			if (!EXTENSIONS.some((ext) => id.endsWith(ext)) || id.includes("?")) return null;
+
+			const filePath = path.isAbsolute(id) ? id : path.resolve(process.cwd(), id);
+
+			// 获取元数据 (虽然 Vite 已经读了一次文件内容作为 code 传给我们，
+			// 但为了保持逻辑统一和获取 mtime，我们依然调用 stat)
+			const stat = await fs.stat(filePath);
+			const sourceKey = `${stat.mtimeMs}-${stat.size}`;
+			const sourceName = sourceNameFor(id);
+
+			if (!sourceName) return;
+
+			let processedSource = "";
+
+			if (sourceName.endsWith(".md")) {
+				processedSource = extractRawContent(source);
+			} else if (sourceName.endsWith(".txt")) {
+				processedSource = await fs.readFile(filePath, "utf-8");
+				processedSource = processedSource.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n");
+			} else if (sourceName.endsWith(".pdf")) {
+				processedSource = id;
 			}
 
-			// ⚠️ 强烈建议：限制拦截范围，避免破坏 Astro 的 Content Collections
-			// 例如：只拦截 src/data/ 或 src/assets/ 目录下的文件
-			// if (!id.includes('/data/') && !id.includes('/assets/')) {
-			//   return null;
-			// }
+			const file: AstroReaderImportFile = {
+				source: processedSource,
+				sourceName,
+				sourceKey,
+			};
 
-			const absolutePath = path.isAbsolute(id) ? id : path.resolve(process.cwd(), id);
-
-			try {
-				// 获取元数据 (虽然 Vite 已经读了一次文件内容作为 code 传给我们，
-				// 但为了保持逻辑统一和获取 mtime，我们依然调用 stat)
-				const stat = await fs.stat(absolutePath);
-				const sourceKey = `${stat.mtimeMs}-${stat.size}`;
-				const assetTitle = titleFor(absolutePath);
-
-				let resourceType: "pdf" | "markdown" | "text" = "text";
-				if (isPdf) resourceType = "pdf";
-				else if (isMd) resourceType = "markdown";
-
-				// ⭐ 核心：返回新的代码对象。Vite 会停止后续的 transform，
-				// Astro 的 Markdown 插件将不会处理这个文件。
-				return {
-					code: `export default {
-            resourceType: ${JSON.stringify(resourceType)},
-            filePath: ${JSON.stringify(absolutePath)},
-            sourceKey: ${JSON.stringify(sourceKey)},
-            assetTitle: ${JSON.stringify(assetTitle)}
-          };`,
-					map: null,
-				};
-			} catch (err) {
-				console.error(`[astro-reader] Failed to transform ${id}:`, err);
-				return null; // 出错时回退
-			}
+			return {
+				code: `export default ${JSON.stringify(file)}`,
+			};
 		},
-
-		// async load(id: string) {
-		// 	const isPdf = id.endsWith(".pdf");
-		// 	const isText = id.endsWith(".txt");
-
-		// 	if (!(isPdf || isText) || id.includes("?")) {
-		// 		return null;
-		// 	}
-
-		// 	const stat = await fs.stat(id);
-		// 	const sourceKey = `${stat.mtimeMs}-${stat.size}`;
-		// 	const assetTitle = titleFor(id);
-
-		// 	let resourceType: "pdf" | "text" = "text";
-		// 	if (isPdf) resourceType = "pdf";
-
-		// 	return `
-		//     export default {
-		//       resourceType: ${JSON.stringify(resourceType)},
-		//       filePath: ${JSON.stringify(id)},
-		//       sourceKey: ${JSON.stringify(sourceKey)},
-		//       assetTitle: ${JSON.stringify(assetTitle)}
-		//     };
-		//   `;
-		// },
 	} satisfies VitePlugin;
 }

@@ -84,7 +84,7 @@ const viewerId = `pdf-viewer-${crypto.randomUUID()}`;
 
 	/**
 	 * 强制所有层锚定在 .page 的 Content Area (0,0) 点
-   * 修复超链接漂移
+	 * 修复超链接漂移
 	 */
 	function fixPdfLayers() {
 		const pages = document.querySelectorAll<HTMLElement>(

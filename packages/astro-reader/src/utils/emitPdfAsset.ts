@@ -1,10 +1,12 @@
 import { emitAsset } from "astro-emit-asset/emit";
 
+import type { Format } from "../types.ts";
+
 export interface EmitPdfAssetOptions {
 	title: string;
 	source: string;
 	render: () => Promise<Buffer>;
-  fromat?: string | undefined;
+	fromat?: Format;
 }
 
 export async function emitPdfAsset(options: EmitPdfAssetOptions): Promise<PdfResult> {

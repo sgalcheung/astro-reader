@@ -1,72 +1,96 @@
 import fs from "node:fs/promises";
-import path from "node:path";
-
+import path, { extname } from "node:path";
 import { marked } from "marked";
 import { html } from "satori-html";
-
-import type { Page } from "../types.js";
-import { emitPdfAsset } from "../utils/emitPdfAsset.ts";
 import {
-	renderContentToPdf,
-	renderHtmlToSvg,
-	renderSatoriToSvg,
-} from "../utils/satoriRenderer.ts";
-import { convertSvgToPdf } from "../utils/svgToPdf.ts";
-import { getUrlFileName } from "../utils/urlHelper.ts";
+	EXTENSION_MAP,
+	RESOURCE_TO_FORMAT,
+	type AstroReaderImportFile,
+	type Extension,
+	type Format,
+	type Page,
+} from "../types.js";
+import { emitPdfAsset } from "../utils/emitPdfAsset.js";
+import { getUrlFileName, sourceNameFor, titleFor } from "../utils/filePathHelper.js";
+import { renderContentToPdf, renderHtmlToSvg, renderSatoriToSvg } from "../utils/satoriRenderer.ts";
+import { renderContent } from "../renderer.js";
+import { createHash } from "node:crypto";
 
-export interface LocalFileContent {
-	resourceType: "pdf" | "markdown" | "text";
-	filePath: string;
-	sourceKey: string;
-	assetTitle: string;
-}
+export function fromImportFile(
+	file: AstroReaderImportFile,
+	outputFormat: Format,
+): DocumentResource {
+	const title = titleFor(file.sourceName);
+	const ext = extname(file.sourceName).toLowerCase();
+	if (!(ext in EXTENSION_MAP)) {
+		throw new Error(`Unsupported file extension: ${ext}`);
+	}
 
-export function fromImportFile(file: LocalFileContent, outputFormat: 'pdf' | 'svg'): DocumentResource {
+	const resourceType = EXTENSION_MAP[ext as Extension];
+	const cacheFormat = RESOURCE_TO_FORMAT[resourceType];
+
 	return {
-		title: file.assetTitle,
+		title,
 		cacheKey: file.sourceKey,
-		cacheFormat: file.resourceType === "pdf" ? "pdf" : "svg",
+		cacheFormat,
 		render: async () => {
-			if (file.resourceType === "pdf") {
-				return await fs.readFile(file.filePath);
+			if (resourceType == EXTENSION_MAP[".md"] || resourceType == EXTENSION_MAP[".txt"]) {
+				return renderContent(file.source, outputFormat);
 			}
 
-			let rawText = await fs.readFile(file.filePath, "utf-8");
-    
-			return renderContentToPdf(
-				file.assetTitle,
-				rawText,
-				file.resourceType === "markdown",
-        outputFormat
-			);
+			return await fs.readFile(file.source);
 		},
 	};
 }
 
-export async function fromUrlFile(url: string): Promise<DocumentResource> {
-	const ext = path.extname(url).toLowerCase();
+export async function fromUrlFile(pathOrUrl: string,
+	outputFormat: Format,): Promise<DocumentResource> {
+  const isRemote = pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://");
+	const fileName = sourceNameFor(pathOrUrl);
+  const title = titleFor(fileName);
+	const ext = path.extname(pathOrUrl).toLowerCase();
 
-	if (ext === ".md") {
-		return await fromMarkdownPathOrUrl(url);
-	} else if (ext === ".txt") {
-		return await fromTextPathOrUrl(url);
-	}
+  let buffer :Buffer;
+  let cacheKey: string;
+  if(isRemote) {
+const response = await fetch(pathOrUrl);
+if (!response.ok) {
+			throw new Error(`Failed to fetch ${pathOrUrl}: ${response.status} ${response.statusText}`);
+}
+const arrayBuffer = await response.arrayBuffer();
+		buffer = Buffer.from(arrayBuffer);
+    cacheKey=createHash('sha256').update(buffer).digest('hex');
+  }
+  else {
+    buffer = await fs.readFile(pathOrUrl);
+      const stat = await fs.stat(pathOrUrl);
+	cacheKey =`${stat.mtimeMs}-${stat.size}`;
+  }
 
-	return await fromPdfPathOrUrl(url);
+	const resourceType = EXTENSION_MAP[ext as Extension];
+	const cacheFormat = RESOURCE_TO_FORMAT[resourceType];
+
+	return {
+    title,
+		cacheKey,
+		cacheFormat,
+		render: async () => {
+			if (resourceType == EXTENSION_MAP[".md"] || resourceType == EXTENSION_MAP[".txt"]) {
+				return renderContent(buffer.toString('utf-8'), outputFormat);
+			}
+
+			return buffer;
+		},
+  }
 }
 
 /**
  * Unified handling of remote URLs and local file paths
  * @param pathOrUrl - Remote URL (http/https) or local relative/absolute path
  */
-export async function fromPdfPathOrUrl(
-	pathOrUrl: string,
-): Promise<DocumentResource> {
-	const isRemote =
-		pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://");
-	const fileName = isRemote
-		? getUrlFileName(pathOrUrl)
-		: path.basename(pathOrUrl);
+export async function fromPdfPathOrUrl(pathOrUrl: string): Promise<DocumentResource> {
+	const isRemote = pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://");
+	const fileName = isRemote ? getUrlFileName(pathOrUrl) : path.basename(pathOrUrl);
 
 	if (isRemote) {
 		return {
@@ -91,14 +115,9 @@ export async function fromPdfPathOrUrl(
 	}
 }
 
-export async function fromMarkdownPathOrUrl(
-	pathOrUrl: string,
-): Promise<DocumentResource> {
-	const isRemote =
-		pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://");
-	const fileName = isRemote
-		? getUrlFileName(pathOrUrl)
-		: path.basename(pathOrUrl);
+export async function fromMarkdownPathOrUrl(pathOrUrl: string): Promise<DocumentResource> {
+	const isRemote = pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://");
+	const fileName = isRemote ? getUrlFileName(pathOrUrl) : path.basename(pathOrUrl);
 	const title = fileName.replace(/\.[^/.]+$/, "") || fileName;
 
 	let readText: () => Promise<string>;
@@ -120,6 +139,7 @@ export async function fromMarkdownPathOrUrl(
 	return {
 		title,
 		cacheKey,
+		cacheFormat: "svg",
 		render: async () => {
 			const markdownContent = await readText();
 
@@ -139,14 +159,9 @@ export async function fromMarkdownPathOrUrl(
 	};
 }
 
-export async function fromTextPathOrUrl(
-	pathOrUrl: string,
-): Promise<DocumentResource> {
-	const isRemote =
-		pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://");
-	const fileName = isRemote
-		? getUrlFileName(pathOrUrl)
-		: path.basename(pathOrUrl);
+export async function fromTextPathOrUrl(pathOrUrl: string): Promise<DocumentResource> {
+	const isRemote = pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://");
+	const fileName = isRemote ? getUrlFileName(pathOrUrl) : path.basename(pathOrUrl);
 	const title = fileName.replace(/\.[^/.]+$/, "") || fileName;
 
 	let readText: () => Promise<string>;
@@ -172,6 +187,7 @@ export async function fromTextPathOrUrl(
 	return {
 		title,
 		cacheKey,
+		cacheFormat: "svg",
 		render: async () => {
 			const textContent = await readText();
 
@@ -184,11 +200,7 @@ export async function fromTextPathOrUrl(
       `;
 
 			// 2. 使用 Satori 生成 SVG Buffer
-			const svgBuffer = await renderHtmlToSvg(
-				htmlString,
-				PAGE_WIDTH,
-				PAGE_HEIGHT,
-			);
+			const svgBuffer = await renderHtmlToSvg(htmlString, PAGE_WIDTH, PAGE_HEIGHT);
 
 			// 3. 根据目标格式决定最终输出
 			// if (targetFormat === "pdf") {
@@ -205,13 +217,11 @@ export async function fromTextPathOrUrl(
 export interface DocumentResource {
 	title: string;
 	cacheKey: string;
-	cacheFormat?: string;
+	cacheFormat: Format;
 	render: () => Promise<Buffer>;
 }
 
-export async function getDocumentViewer(
-	resource: DocumentResource,
-): Promise<Page> {
+export async function getDocumentViewer(resource: DocumentResource): Promise<Page> {
 	try {
 		return await emitPdfAsset({
 			title: resource.title,

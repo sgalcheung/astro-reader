@@ -1,10 +1,10 @@
 ---
-import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
-import { DocumentViewer } from "astro-reader/ui";
-import { type CatalogItem, siteInfo } from "../data/site-info";
-import pdf from "../content/helloworld.pdf";
-import markedDemo from "../content/marked-demo.md";
-import plainTextToPdf from "../content/plain-text-to-pdf.txt";
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import { DocumentViewer } from 'astro-reader/ui';
+import { type CatalogItem, siteInfo } from '../data/site-info';
+import pdf from '../content/helloworld.pdf';
+import markedDemo from '../content/marked-demo.md';
+import plainTextToPdf from '../content/plain-text-to-pdf.txt';
 
 export async function getStaticPaths() {
 	const pages = await Promise.all(
@@ -30,10 +30,10 @@ const { item } = Astro.props as { item: CatalogItem };
 	<!-- from import file -->
 	<!-- <DocumentViewer content={pdf} /> -->
 	<!-- <DocumentViewer content={plainTextToPdf} /> -->
-	<DocumentViewer content={markedDemo} />
+	<!-- <DocumentViewer content={markedDemo} /> -->
 
 	<!-- from url file  -->
-	<!-- <DocumentViewer url={item.fileUrl} /> -->
+	<DocumentViewer url={item.fileUrl} />
 </StarlightPage>
 
 <style>

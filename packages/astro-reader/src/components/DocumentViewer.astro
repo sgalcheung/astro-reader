@@ -1,18 +1,21 @@
 ---
+import { type AstroReaderImportFile, type Format } from '../types.js';
 import {
 	type DocumentResource,
 	fromImportFile,
 	getDocumentViewer,
-	type LocalFileContent,
 	fromUrlFile,
 } from './DocumentViewer.js';
 import PDFViewer from './PDFViewer.astro';
 import SVGViewer from './SVGViewer.astro';
 
 export interface Props {
-	content?: unknown;
+	content?: AstroReaderImportFile;
 	url?: string;
-	format?: 'pdf' | 'svg';
+	/**
+	 * output format
+	 */
+	format?: Format;
 	// Allows passing other attributes to PDFViewer/SVGViewer (such as class, style, alt etc.)
 	[key: string]: unknown;
 }
@@ -21,28 +24,15 @@ const { format = 'pdf', content, url, ...restProps } = Astro.props;
 
 let resource: DocumentResource;
 
-function isImportFileContent(data: unknown): data is LocalFileContent {
-	return (
-		typeof data === 'object' &&
-		data !== null &&
-		'resourceType' in data &&
-		'filePath' in data
-	);
-}
-
 if (content) {
-	if (isImportFileContent(content)) {
-		resource = fromImportFile(content, format);
-	} else {
-		throw new Error('<DocumentViewer> Unrecognized content format.');
-	}
+	resource = fromImportFile(content, format);
 } else if (url) {
-	resource = await fromUrlFile(url);
+	resource = await fromUrlFile(url, format);
 } else {
 	throw new Error('<DocumentViewer> requires either `content` or `url` prop.');
 }
 
-const page = await getDocumentViewer({ cacheFormat: 'svg', ...resource });
+const page = await getDocumentViewer(resource);
 ---
 
 {format === 'pdf' ? <PDFViewer page={page} /> : <SVGViewer page={page} />}

@@ -30,8 +30,7 @@ export const siteInfo: SiteInfo = {
 				{
 					label: "Sample PDF",
 					link: "/getting-started/sample-pdf",
-					fileUrl:
-						"https://ontheline.trincoll.edu/images/bookdown/sample-local-pdf.pdf",
+					fileUrl: "https://ontheline.trincoll.edu/images/bookdown/sample-local-pdf.pdf",
 				},
 			],
 		},

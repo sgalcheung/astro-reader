@@ -2,15 +2,43 @@ import type { AstroIntegrationLogger } from "astro";
 
 import type { Metadata } from "./utils/metadata.ts";
 
-export const EXTENSIONS = [".md"] as const;
+/**
+ * for import resource type
+ */
+export const EXTENSION_MAP = {
+	".md": "markdown",
+	".txt": "text",
+	".pdf": "pdf",
+} as const;
 
+export type Extension = keyof typeof EXTENSION_MAP;
+type ResourceType = (typeof EXTENSION_MAP)[keyof typeof EXTENSION_MAP];
+export const EXTENSIONS = Object.keys(EXTENSION_MAP) as Extension[];
+export const RESOURCE_TYPES = Object.values(EXTENSION_MAP) as ResourceType[];
+
+export interface AstroReaderImportFile {
+	source: string;
+	sourceName: string;
+	sourceKey: string;
+}
+
+/**
+ * for output file type
+ * for astro-emit-asset to cache store type
+ * how to view the result of the file
+ */
 export const FORMATS = {
-	PNG: "png",
 	SVG: "svg",
 	PDF: "pdf",
 } as const;
 
 export type Format = (typeof FORMATS)[keyof typeof FORMATS];
+
+export const RESOURCE_TO_FORMAT: Record<ResourceType, Format> = {
+	text: FORMATS.SVG,
+	markdown: FORMATS.SVG,
+	pdf: FORMATS.PDF,
+};
 
 export interface Defaults {
 	/**
