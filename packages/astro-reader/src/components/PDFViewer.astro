@@ -87,30 +87,28 @@ const viewerId = `pdf-viewer-${crypto.randomUUID()}`;
 	 * 修复超链接漂移
 	 */
 	function fixPdfLayers() {
-		const pages = document.querySelectorAll<HTMLElement>(
-			'.viewerContainer .page',
-		);
-
+		const pages = document.querySelectorAll<HTMLElement>('.viewerContainer .page');
+		
 		for (const page of pages) {
 			const canvas = page.querySelector<HTMLCanvasElement>('canvas');
 			const annot = page.querySelector<HTMLElement>('.annotationLayer');
 			const text = page.querySelector<HTMLElement>('.textLayer');
 
 			if (canvas && annot) {
-				// 1. 获取真实物理尺寸
-				const w = canvas.width;
-				const h = canvas.height;
+				// 1. ✅ 核心：获取 Canvas 当前在屏幕上实际渲染的 CSS 尺寸 (已包含任何响应式缩放)
+				const rect = canvas.getBoundingClientRect();
+				const w = rect.width;
+				const h = rect.height;
 
-				// 2. 锁定 Canvas 物理尺寸，防止被全局 CSS 压缩
-				canvas.style.setProperty('width', `${w}px`, 'important');
-				canvas.style.setProperty('height', `${h}px`, 'important');
-				canvas.style.setProperty('max-width', 'none', 'important');
+				// ⚠️ 注意：绝对不要修改 canvas 的任何 style！让 PDF.js 自己管理它。
 
-				// 3. ✅ 核心：强制 Annotation Layer 锚定在 (0,0)，清除所有默认边距和变换
+				// 2. 强制 Annotation Layer 的尺寸与 Canvas 的实际渲染尺寸完全一致
 				annot.style.setProperty('width', `${w}px`, 'important');
 				annot.style.setProperty('height', `${h}px`, 'important');
-				annot.style.setProperty('left', '0px', 'important'); // 必须是 0px！
-				annot.style.setProperty('top', '0px', 'important'); // 必须是 0px！
+				
+				// 3. 强制锚定在 (0,0)，清除任何可能的默认边距或变换
+				annot.style.setProperty('left', '0px', 'important');
+				annot.style.setProperty('top', '0px', 'important');
 				annot.style.setProperty('margin', '0px', 'important');
 				annot.style.setProperty('transform', 'none', 'important');
 
@@ -124,29 +122,25 @@ const viewerId = `pdf-viewer-${crypto.randomUUID()}`;
 					text.style.setProperty('transform', 'none', 'important');
 				}
 
-				// 5. 将 linkAnnotation 的百分比坐标转换为绝对像素值
+				// 5. ✅ 安全转换：仅当原始值明确是 '%' 时才转换为 px，防止重复计算导致数值爆炸
 				const links = annot.querySelectorAll<HTMLElement>('.linkAnnotation');
 				for (const link of links) {
 					const style = link.style;
-					const leftPct = parseFloat(style.left);
-					const topPct = parseFloat(style.top);
-					const widthPct = parseFloat(style.width);
-					const heightPct = parseFloat(style.height);
+					
+					// 严格检查：必须包含 '%' 才处理，避免把已经是 'px' 的值再次错误计算
+					if (style.left && style.left.includes('%') && style.top && style.top.includes('%')) {
+						const leftPct = parseFloat(style.left);
+						const topPct = parseFloat(style.top);
+						const widthPct = parseFloat(style.width || '0');
+						const heightPct = parseFloat(style.height || '0');
 
-					if (!isNaN(leftPct)) {
-						style.setProperty('left', `${(leftPct / 100) * w}px`, 'important');
-						style.setProperty('top', `${(topPct / 100) * h}px`, 'important');
-						style.setProperty(
-							'width',
-							`${(widthPct / 100) * w}px`,
-							'important',
-						);
-						style.setProperty(
-							'height',
-							`${(heightPct / 100) * h}px`,
-							'important',
-						);
-						style.setProperty('margin', '0px', 'important');
+						if (!isNaN(leftPct)) {
+							style.setProperty('left', `${(leftPct / 100) * w}px`, 'important');
+							style.setProperty('top', `${(topPct / 100) * h}px`, 'important');
+							style.setProperty('width', `${(widthPct / 100) * w}px`, 'important');
+							style.setProperty('height', `${(heightPct / 100) * h}px`, 'important');
+              style.setProperty('margin-top', '0px', 'important');
+						}
 					}
 				}
 			}
