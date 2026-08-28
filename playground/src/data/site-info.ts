@@ -55,16 +55,16 @@ export const siteInfo: SiteInfo = {
 			],
 		},
 		{
-			label: "行政管理研究方法",
+			label: "More PDFs",
 			items: [
 				{
-					label: "专栏导语",
-					link: "/jpa/jpa-research-methods",
-					fileUrl: "https://jpa.sysu.edu.cn/docs/20091207154349000105.pdf",
+					label: "mozilla PDF.js demo",
+					link: "/more-pdf/mozilla PDF.js demo",
+					fileUrl: "https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf",
 				},
 				{
 					label: "专栏导语（本地）",
-					link: "/jpa/jpa-research-methods-local",
+					link: "/more-pdf/jpa-research-methods-local",
 					fileUrl: "src/content/jpa-research-methods.pdf",
 				},
 			],
