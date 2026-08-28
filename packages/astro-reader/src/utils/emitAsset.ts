@@ -1,15 +1,15 @@
 import { emitAsset } from "astro-emit-asset/emit";
 
-import type { Format } from "../types.ts";
+import type { Format } from "../types.js";
 
-export interface EmitPdfAssetOptions {
+export interface EmitDVAssetOptions {
 	title: string;
 	source: string;
 	render: () => Promise<Buffer>;
 	fromat?: Format;
 }
 
-export async function emitPdfAsset(options: EmitPdfAssetOptions): Promise<PdfResult> {
+export async function emitDVAsset(options: EmitDVAssetOptions): Promise<DVResult> {
 	const { title, source, render, fromat } = options;
 
 	const asset = await emitAsset(`${title}.[hash].${fromat}`, [source, fromat], async () => {
@@ -20,6 +20,6 @@ export async function emitPdfAsset(options: EmitPdfAssetOptions): Promise<PdfRes
 	return { src: asset.src };
 }
 
-export interface PdfResult {
+export interface DVResult {
 	src: string;
 }

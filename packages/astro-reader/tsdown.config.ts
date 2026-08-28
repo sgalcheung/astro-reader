@@ -25,8 +25,6 @@ export default defineConfig({
 			// keys, but in unbundle mode it emits the export specifiers without
 			// declaring the bindings
 			/.*\.json$/,
-			"fsevents",
-			"playwright-core",
 		],
 	},
 });

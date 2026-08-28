@@ -6,10 +6,10 @@ import { fileURLToPath } from "node:url";
 import type { AstroConfig, AstroIntegration } from "astro";
 import emitAssetIntegration from "astro-emit-asset";
 
-import { setState } from "./state.ts";
-import { EXTENSION_MAP, EXTENSIONS, type AstroReaderImportFile } from "./types.js";
-import { extractRawContent } from "./utils/acornHelper.ts";
-import { sourceNameFor } from "./utils/filePathHelper.ts";
+import { setState } from "./state.js";
+import { EXTENSIONS, type AstroReaderImportFile } from "./types.js";
+import { extractRawContent } from "./utils/acornHelper.js";
+import { sourceNameFor } from "./utils/filePathHelper.js";
 
 export function astroReader(
 	options: { fontName?: string; enableProxy?: boolean } = {},
@@ -43,7 +43,7 @@ export function astroReader(
 				updateConfig({
 					integrations: [emitAssetIntegration()],
 					vite: {
-						plugins: [vitePluginImportContent()],
+						plugins: [typstPlugin(), vitePluginImportContent()],
 					},
 				});
 
@@ -205,4 +205,36 @@ function vitePluginImportContent() {
 			};
 		},
 	} satisfies VitePlugin;
+}
+
+// https://github.com/Myriad-Dreamin/typst.ts/pull/835
+/**
+ * Fixed the compilation error of @myriaddreamin/typst-ts-node-compiler.
+ * [UNLOADABLE_DEPENDENCY] Could not load
+ * ../node_modules/.pnpm/@myriaddreamin+typst-ts-node-compiler-darwin-x64@0.7.0/node_modules/@myriaddreamin/typst-ts-node-compiler-darwin-x64/typst-ts-node-compiler.darwin-x64.node
+ * stream did not contain valid UTF-8
+ */
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+
+function typstPlugin(): VitePlugin {
+	const typstPath = require.resolve("@myriaddreamin/typst-ts-node-compiler");
+
+	return {
+		name: "astro-reader-typst",
+		enforce: "pre",
+		resolveId(id) {
+			if (
+				id === "@myriaddreamin/typst-ts-node-compiler" ||
+				id.startsWith("@myriaddreamin/typst-ts-node-compiler")
+			) {
+				return {
+					id: typstPath,
+					external: "absolute",
+				};
+			}
+
+			return null;
+		},
+	};
 }
