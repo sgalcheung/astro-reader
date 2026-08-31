@@ -3,7 +3,7 @@ import { defineConfig } from "tsdown";
 import pkg from "./package.json" with { type: "json" };
 
 export default defineConfig({
-	entry: ["src/index.ts"],
+	entry: ["src/index.ts", "src/components/DocumentViewer.ts"],
 	format: ["esm"],
 	target: "node22",
 	unbundle: true,

@@ -87,8 +87,10 @@ const viewerId = `pdf-viewer-${crypto.randomUUID()}`;
 	 * 修复超链接漂移
 	 */
 	function fixPdfLayers() {
-		const pages = document.querySelectorAll<HTMLElement>('.viewerContainer .page');
-		
+		const pages = document.querySelectorAll<HTMLElement>(
+			'.viewerContainer .page',
+		);
+
 		for (const page of pages) {
 			const canvas = page.querySelector<HTMLCanvasElement>('canvas');
 			const annot = page.querySelector<HTMLElement>('.annotationLayer');
@@ -105,7 +107,7 @@ const viewerId = `pdf-viewer-${crypto.randomUUID()}`;
 				// 2. 强制 Annotation Layer 的尺寸与 Canvas 的实际渲染尺寸完全一致
 				annot.style.setProperty('width', `${w}px`, 'important');
 				annot.style.setProperty('height', `${h}px`, 'important');
-				
+
 				// 3. 强制锚定在 (0,0)，清除任何可能的默认边距或变换
 				annot.style.setProperty('left', '0px', 'important');
 				annot.style.setProperty('top', '0px', 'important');
@@ -126,20 +128,37 @@ const viewerId = `pdf-viewer-${crypto.randomUUID()}`;
 				const links = annot.querySelectorAll<HTMLElement>('.linkAnnotation');
 				for (const link of links) {
 					const style = link.style;
-					
+
 					// 严格检查：必须包含 '%' 才处理，避免把已经是 'px' 的值再次错误计算
-					if (style.left && style.left.includes('%') && style.top && style.top.includes('%')) {
+					if (
+						style.left &&
+						style.left.includes('%') &&
+						style.top &&
+						style.top.includes('%')
+					) {
 						const leftPct = parseFloat(style.left);
 						const topPct = parseFloat(style.top);
 						const widthPct = parseFloat(style.width || '0');
 						const heightPct = parseFloat(style.height || '0');
 
 						if (!isNaN(leftPct)) {
-							style.setProperty('left', `${(leftPct / 100) * w}px`, 'important');
+							style.setProperty(
+								'left',
+								`${(leftPct / 100) * w}px`,
+								'important',
+							);
 							style.setProperty('top', `${(topPct / 100) * h}px`, 'important');
-							style.setProperty('width', `${(widthPct / 100) * w}px`, 'important');
-							style.setProperty('height', `${(heightPct / 100) * h}px`, 'important');
-              style.setProperty('margin-top', '0px', 'important');
+							style.setProperty(
+								'width',
+								`${(widthPct / 100) * w}px`,
+								'important',
+							);
+							style.setProperty(
+								'height',
+								`${(heightPct / 100) * h}px`,
+								'important',
+							);
+							style.setProperty('margin-top', '0px', 'important');
 						}
 					}
 				}

@@ -52,5 +52,13 @@ export default defineConfig({
 			}),
 			tailwindcss(),
 		],
+		optimizeDeps: {
+			include: ['react-resizable-panels'],
+		},
+		build: {
+			commonjsOptions: {
+				include: [/react-resizable-panels/, /node_modules/],
+			},
+		},
 	},
 });

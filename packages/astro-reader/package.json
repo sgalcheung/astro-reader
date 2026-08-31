@@ -11,9 +11,10 @@
     },
     "./ui": "./src/ui.ts",
     "./DocumentViewer": {
-      "types": "./dist/DocumentViewer.d.ts",
-      "import": "./dist/DocumentViewer.js"
-    }
+      "types": "./dist/components/DocumentViewer.d.ts",
+      "import": "./dist/components/DocumentViewer.js"
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
